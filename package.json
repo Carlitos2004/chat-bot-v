@@ -1,0 +1,17 @@
+{
+  "name": "grupo-11-chatbot-service",
+  "version": "1.0.0",
+  "description": "Chatbot de soporte y asistencia para Mini Marketplace Cloud.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node --check src/app.js && node --check src/config.js && node --check src/server.js && node --check src/application/intentDetector.js && node --check src/application/processMessage.js && node --check src/application/responseBuilder.js && node --check src/infrastructure/apiAdapters.js && node --check src/infrastructure/geminiClient.js && node --check src/infrastructure/mockData.js && node --check src/infrastructure/sessionStore.js && node --check public/app.js && node --check scripts/smoke-test.mjs",
+    "dev": "node src/server.js",
+    "open": "node src/server.js --open",
+    "start": "node src/server.js",
+    "smoke": "node scripts/smoke-test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

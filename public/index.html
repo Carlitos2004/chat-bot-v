@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chatbot Grupo 11</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Estado del servicio">
+        <div>
+          <p class="eyebrow">Grupo 11</p>
+          <h1>Chatbot de soporte</h1>
+          <p class="summary">Mini Marketplace Cloud</p>
+        </div>
+
+        <section class="status-panel">
+          <h2>Servicio</h2>
+          <dl>
+            <div>
+              <dt>API</dt>
+              <dd id="api-status">Comprobando</dd>
+            </div>
+            <div>
+              <dt>Modo</dt>
+              <dd>Mock + Gemini si hay cuota</dd>
+            </div>
+            <div>
+              <dt>Sesion</dt>
+              <dd id="session-id"></dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
+
+      <section class="chat-area" aria-label="Chat">
+        <header class="chat-header">
+          <div>
+            <p class="eyebrow">Soporte</p>
+            <h2>Consulta pedidos, pagos, despacho, stock y FAQ</h2>
+          </div>
+          <button id="clear-chat" type="button">Limpiar</button>
+        </header>
+
+        <div id="messages" class="messages" aria-live="polite"></div>
+
+        <form id="chat-form" class="composer">
+          <input
+            id="message-input"
+            name="message"
+            type="text"
+            autocomplete="off"
+            placeholder="Escribe: Donde esta mi pedido ORD-1001?"
+            required
+          />
+          <button type="submit">Enviar</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+  </body>
+</html>
