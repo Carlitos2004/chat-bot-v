@@ -2,7 +2,7 @@ import { readdir } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-const roots = ["src", "public", "scripts"];
+const roots = ["backend/src", "frontend", "scripts"];
 const files = [];
 
 for (const root of roots) {

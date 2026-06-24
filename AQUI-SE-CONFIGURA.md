@@ -1,119 +1,40 @@
-# Aqui se configura el chatbot
+# Guía Rápida de Configuración y Estructura del Chatbot
 
-Este archivo es la guia corta para no perderse en el proyecto.
+Esta es una guía sencilla para entender la estructura actual del proyecto, la integración que realizamos y las tareas pendientes para la entrega final.
 
-## 1. Como se inicia
+---
 
-En Visual Studio Code abre esta carpeta y ejecuta:
+## 1. Estructura Física del Proyecto (¿Qué es cada carpeta?)
 
-```powershell
-npm run dev
-```
+Hemos organizado el proyecto en dos secciones muy claras para separar el cliente del servidor:
 
-La terminal mostrara un link, por ejemplo:
+*   **`frontend/`**: Contiene la interfaz gráfica del chat. Aquí está el HTML, los estilos y la lógica del navegador (`app.js`).
+*   **`backend/`**: Contiene el código de Node.js que procesa el chat, detecta las intenciones (intents), maneja la lógica de las preguntas frecuentes (FAQ) y se conecta con Gemini u otras APIs.
+*   **`scripts/`**: Son **pequeños programas automatizados** de soporte. No son parte de la aplicación que ve el usuario, sino herramientas para el equipo de desarrollo:
+    *   `build-check.mjs`: Verifica de forma automática que no haya errores de ortografía o de sintaxis en los archivos de código.
+    *   `smoke-test.mjs` (Test de humo): Hace una simulación rápida enviando un mensaje de chat al servidor para comprobar si este responde correctamente sin necesidad de abrir el navegador.
+    *   `set-gemini-key.ps1`: Un script de ayuda en PowerShell para crear el archivo `.env` fácilmente.
 
-```text
-http://localhost:3000
-```
+---
 
-Aprieta ese link para abrir el chatbot.
+## 2. Lo que se integró del Repositorio de los Compañeros
 
-Si el puerto esta ocupado, puede mostrar:
+Unimos la base del chatbot real con las especificaciones y la seguridad que definieron los compañeros en su esqueleto de la Fase 1 (`chatbot-service-main`):
+1.  **Validación de `X-Api-Key`**: Se implementó un middleware de seguridad en `backend/src/app.js` que protege la API. Todas las rutas conversacionales exigen esta clave.
+2.  **Endpoint de FAQ (`/chat/faq/:category`)**: Creamos el servicio [faqService.js](file:///c:/Users/carlo/OneDrive/Desktop/chat%20bot/backend/src/application/faqService.js) que responde preguntas frecuentes sobre envíos, pagos, cuentas y productos (las cuatro categorías del contrato).
+3.  **Salud del Sistema (`/health`)**: Tu endpoint de salud ahora reporta el estado detallado de conexión de todas las dependencias del ecosistema.
 
-```text
-http://localhost:3001
-```
+---
 
-Usa siempre el link que salga en la terminal.
+## 3. ¿Qué falta por hacer y qué necesitamos de los otros grupos?
 
-## 2. Gemini
+Para que el proyecto esté completo y pase de usar datos falsos a datos reales:
 
-Gemini no esta en `public/` ni en `scripts/`.
-
-La conexion real con Gemini esta aqui:
-
-```text
-src/infrastructure/geminiClient.js
-```
-
-El chatbot llama a Gemini desde:
-
-```text
-src/application/processMessage.js
-```
-
-Para activar Gemini necesitas crear un archivo `.env` en la raiz del proyecto:
-
-```env
-GEMINI_API_KEY=tu_clave_de_google_ai_studio
-GEMINI_MODEL=gemini-2.0-flash-lite
-GEMINI_ENABLED=true
-MOCK_MODE=true
-```
-
-Tambien puedes crear ese `.env` con:
-
-```powershell
-.\scripts\set-gemini-key.ps1
-```
-
-Ese script no contiene respuestas. Solo guarda la clave de Gemini en `.env`.
-
-Si no hay `.env`, no hay clave o Gemini no tiene cuota gratis, el chatbot responde con fallback local.
-
-## 3. APIs de otros grupos
-
-Las APIs de otros grupos NO se agregan en Gemini.
-
-Se agregan en `.env`:
-
-```env
-AUTH_SERVICE_URL=https://api-grupo-2
-CATALOG_SERVICE_URL=https://api-grupo-3
-ORDER_SERVICE_URL=https://api-grupo-5
-PAYMENT_SERVICE_URL=https://api-grupo-6
-INVENTORY_SERVICE_URL=https://api-grupo-7
-SHIPPING_SERVICE_URL=https://api-grupo-8
-NOTIFICATION_SERVICE_URL=https://api-grupo-9
-REPORTING_SERVICE_URL=https://api-grupo-10
-MOCK_MODE=false
-```
-
-Luego, si el endpoint o la respuesta de un grupo es distinta, se modifica aqui:
-
-```text
-src/infrastructure/apiAdapters.js
-```
-
-Ejemplo: si el Grupo 3 te manda la API de catalogo, pones su URL en:
-
-```env
-CATALOG_SERVICE_URL=https://url-real-del-catalogo
-```
-
-Y si el contrato no es exactamente `GET /products`, se ajusta en:
-
-```text
-src/infrastructure/apiAdapters.js
-```
-
-## 4. Datos falsos actuales
-
-Mientras no tengamos APIs reales, el chatbot usa datos falsos de:
-
-```text
-src/infrastructure/mockData.js
-```
-
-Ahi estan productos, stock, pedidos, pagos, despacho y notificaciones de prueba.
-
-## 5. Logica principal
-
-- `public/`: pantalla visual.
-- `src/app.js`: rutas HTTP.
-- `src/application/intentDetector.js`: detecta si el usuario pregunta por pedido, pago, stock, etc.
-- `src/application/processMessage.js`: decide que servicio consultar.
-- `src/application/responseBuilder.js`: arma la respuesta si Gemini no funciona.
-- `src/infrastructure/geminiClient.js`: llamada real a Gemini.
-- `src/infrastructure/apiAdapters.js`: llamadas reales a los grupos.
-- `src/infrastructure/mockData.js`: datos falsos de prueba.
+1.  **Obtener las URLs de las APIs de los otros grupos**:
+    Cada grupo (G2 de Autenticación, G3 de Catálogo, G5 de Pedidos, etc.) desplegará su propio servidor. Cuando te entreguen sus direcciones de internet (por ejemplo, `https://catalogo-g3.render.com`), debes copiarlas en tu archivo `.env`.
+2.  **Desactivar el Modo Mock**:
+    Una vez configuradas las URLs de los otros grupos en tu archivo `.env`, cambia la variable `MOCK_MODE=true` a `MOCK_MODE=false`. A partir de ese momento, el chatbot llamará a sus APIs reales.
+3.  **Base de Datos en Supabase (Persistencia)**:
+    Si el docente exige persistencia final, faltaría conectar Supabase en `sessionStore.js` para registrar el historial de conversaciones de forma permanente en la base de datos PostgreSQL, en lugar de en la memoria RAM local.
+4.  **Despliegue del Chatbot**:
+    Subir todo este código a un servidor en la nube (como Render.com, tal como se especifica en su contrato OpenAPI).

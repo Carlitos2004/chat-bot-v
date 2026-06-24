@@ -14,6 +14,7 @@ PORT=3000
 GEMINI_API_KEY=$key
 GEMINI_MODEL=gemini-2.0-flash-lite
 GEMINI_ENABLED=true
+CHATBOT_API_KEY=mk-chatbot-abc123xyz
 MOCK_MODE=true
 
 AUTH_SERVICE_URL=

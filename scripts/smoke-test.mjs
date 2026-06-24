@@ -4,6 +4,7 @@ const response = await fetch(`${baseUrl}/chat/message`, {
   method: "POST",
   headers: {
     "content-type": "application/json",
+    "x-api-key": process.env.CHATBOT_API_KEY || "mk-chatbot-abc123xyz",
     "x-request-id": crypto.randomUUID(),
     "x-correlation-id": crypto.randomUUID(),
     "x-consumer": "chatbot-service",
