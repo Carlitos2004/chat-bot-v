@@ -17,7 +17,7 @@ const router = Router();
 router.use(authMiddleware);
 
 /**
- * ENDPOINT: GET /chat/sessions/:sessionId
+ * ENDPOINT: GET /chat/session/:sessionId
  * 
  * - Tipo: Privado (Exige el header X-Api-Key).
  * - Función: Busca la sesión en memoria y retorna su objeto completo con el
@@ -25,6 +25,6 @@ router.use(authMiddleware);
  * - Parámetros en URL: sessionId (UUID enviado en el path).
  * - Controlador: getSessionHistory en session.controller.ts
  */
-router.get("/chat/sessions/:sessionId", getSessionHistory);
+router.get("/chat/session/:sessionId", getSessionHistory);
 
 export default router;
