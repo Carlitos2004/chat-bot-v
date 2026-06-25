@@ -1,6 +1,8 @@
 # Grupo 11 - Chatbot Service
 
-API local del chatbot de soporte para Mini Marketplace Cloud.
+Este microservicio actúa como la capa de atención, orquestación e integración conversacional del ecosistema. Su responsabilidad principal es interactuar con los clientes del Marketplace utilizando lenguaje natural para resolver consultas de catálogo, stock, estados de órdenes, pagos y FAQs generales, centralizando flujos complejos mediante llamadas cruzadas a los demás grupos (G2-G9).
+
+En esta fase actual, el proyecto implementa un Mock Funcional Inteligente alineado al contrato estricto para desbloquear las integraciones tempranas.
 
 ## Que hace
 
