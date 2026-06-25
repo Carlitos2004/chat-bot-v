@@ -1,7 +1,9 @@
-import { config } from "../config.js";
+import { config } from "../config/config.js";
 
-export async function callGemini(prompt) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.gemini.model)}:generateContent?key=${encodeURIComponent(config.gemini.apiKey)}`;
+export async function callGemini(prompt: string): Promise<string> {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    config.gemini.model
+  )}:generateContent?key=${encodeURIComponent(config.gemini.apiKey)}`;
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -34,9 +36,13 @@ export async function callGemini(prompt) {
     throw new Error(`Gemini API error ${response.status}: ${body.slice(0, 300)}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as any;
   const parts = data?.candidates?.[0]?.content?.parts ?? [];
-  const text = parts.map((part) => part.text).filter(Boolean).join("\n").trim();
+  const text = parts
+    .map((part: any) => part.text)
+    .filter(Boolean)
+    .join("\n")
+    .trim();
 
   if (!text) {
     throw new Error("Gemini no retorno texto.");

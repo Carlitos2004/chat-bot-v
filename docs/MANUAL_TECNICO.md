@@ -13,9 +13,9 @@ El **chatbot-service** es el servicio de soporte conversacional del ecosistema M
 |---|---|
 | **Grupo** | 11 |
 | **Servicio** | Chatbot de soporte |
-| **Stack** | Node.js puro (sin frameworks), ESM |
+| **Stack** | TypeScript, Express 4, ESM |
 | **IA** | Google Gemini API (gemini-2.0-flash-lite) |
-| **Persistencia E2** | En memoria (sessionStore.js) |
+| **Persistencia E2** | En memoria (sessionStore.service.ts) |
 | **Persistencia objetivo E3** | Supabase PostgreSQL |
 | **Despliegue objetivo** | Render.com |
 | **API Key predeterminada (mock)** | `mk-chatbot-abc123xyz` |
@@ -24,7 +24,7 @@ El **chatbot-service** es el servicio de soporte conversacional del ecosistema M
 
 ## 2. Arquitectura del servicio
 
-El servicio usa una arquitectura por capas:
+El servicio usa una arquitectura por capas implementada sobre Express:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -33,42 +33,44 @@ El servicio usa una arquitectura por capas:
 └──────────────────┬──────────────────────────┘
                    │ HTTP
 ┌──────────────────▼──────────────────────────┐
-│          backend/src/server.js              │
-│     (http.createServer → handleRequest)     │
+│         backend/src/server.ts               │
+│     (http.createServer(app) -> listen)      │
 └──────────────────┬──────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────┐
-│           backend/src/app.js                │
-│   Dispatcher: valida API Key, parsea body,  │
-│   despacha al router correspondiente        │
-└──┬───────────────┬───────────────┬──────────┘
-   │               │               │
-┌──▼──────┐  ┌─────▼──────┐  ┌────▼────────┐
-│ routers/│  │ routers/   │  │ routers/    │
-│ health  │  │ chat       │  │ session     │
-│ Router  │  │ Router     │  │ Router +    │
-│         │  │            │  │ faqRouter   │
-└─────────┘  └─────┬──────┘  └─────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│          application/ (lógica de negocio)   │
-│  processMessage.js  intentDetector.js       │
-│  responseBuilder.js faqService.js           │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│         infrastructure/ (adaptadores)       │
-│  apiAdapters.js   geminiClient.js           │
-│  sessionStore.js  mockData.js               │
-└──────────────────┬──────────────────────────┘
-                   │
-     ┌─────────────┴──────────────┐
-     │                            │
-┌────▼───────┐           ┌────────▼──────────┐
-│  Gemini    │           │  APIs externas     │
-│  API       │           │  G2, G3, G5, G6,  │
-│            │           │  G7, G8, G9        │
-└────────────┘           └───────────────────┘
+│          backend/src/app.ts                 │
+│   Express App: parsers, CORS, middlewares,  │
+│   rutas estáticas y API                     │
+└──┬───────────────────────────┬──────────────┘
+   │                           │
+┌──▼────────────────────────┐ ┌▼──────────────────────────┐
+│     middlewares/          │ │        routes/            │
+│   auth.middleware.ts      │ │  health.route.ts          │
+│   (Valida X-Api-Key)      │ │  chat.route.ts            │
+└───────────────────────────┘ └────────┬──────────────────┘
+                                       │
+                              ┌────────▼──────────┐
+                              │    controllers/   │
+                              │  health.controller│
+                              │  chat.controller  │
+                              └────────┬──────────┘
+                                       │
+                              ┌────────▼──────────┐
+                              │      services/    │
+                              │  intent.service   │
+                              │  gemini.service   │
+                              │  upstreamMocks    │
+                              │  sessionStore     │
+                              │  faq.service      │
+                              └────────┬──────────┘
+                                       │
+                         ┌─────────────┴──────────────┐
+                         │                            │
+                   ┌─────▼──────┐           ┌─────────▼─────────┐
+                   │  Gemini    │           │  APIs externas    │
+                   │  API       │           │  G2, G3, G5, G6,  │
+                   │            │           │  G7, G8, G9       │
+                   └────────────┘           └───────────────────┘
 ```
 
 ---
@@ -78,29 +80,29 @@ El servicio usa una arquitectura por capas:
 ```
 chat bot/
 ├── backend/
-│   └── src/
-│       ├── models/                    ← Modelos de datos
-│       │   ├── Message.js             ← Typedef + factory createMessage()
-│       │   └── Session.js             ← Typedef + factory createSession()
-│       ├── routers/                   ← Routers por endpoint
-│       │   ├── index.js               ← Barrel: allRoutes[]
-│       │   ├── healthRouter.js        ← GET /health
-│       │   ├── chatRouter.js          ← POST /chat/message
-│       │   ├── sessionRouter.js       ← GET /chat/session/{id}
-│       │   └── faqRouter.js           ← GET /chat/faq/{category}
-│       ├── application/               ← Lógica de negocio
-│       │   ├── processMessage.js      ← Orquestador principal
-│       │   ├── intentDetector.js      ← Clasificador de intents
-│       │   ├── responseBuilder.js     ← Construcción de respuestas
-│       │   └── faqService.js          ← FAQs (Gemini o fallback)
-│       ├── infrastructure/            ← Acceso a datos y servicios externos
-│       │   ├── apiAdapters.js         ← Llamadas a G2, G3, G5, G6, G7, G8, G9
-│       │   ├── geminiClient.js        ← Cliente REST de Gemini API
-│       │   ├── sessionStore.js        ← BD en memoria (usa models/)
-│       │   └── mockData.js            ← Datos simulados para MOCK_MODE=true
-│       ├── app.js                     ← Dispatcher HTTP principal
-│       ├── config.js                  ← Variables de entorno
-│       └── server.js                  ← Entrada: http.createServer
+│   ├── dist/                          ← Código TypeScript compilado a JavaScript
+│   └── src/                           ← Código fuente TypeScript
+│       ├── config/
+│       │   └── config.ts              ← Variables de entorno (.env)
+│       ├── controllers/
+│       │   ├── chat.controller.ts     ← Controladores para chat, sesiones y FAQ
+│       │   └── health.controller.ts   ← Controlador de salud
+│       ├── middlewares/
+│       │   └── auth.middleware.ts     ← Middleware de validación X-Api-Key
+│       ├── models/
+│       │   ├── chat.model.ts          ← Interfaces de Message y Session
+│       │   └── error.model.ts         ← Interfaces de errores de API
+│       ├── routes/
+│       │   ├── chat.route.ts          ← Rutas de Express para chat, sesiones y FAQ
+│       │   └── health.route.ts        ← Ruta de Express para salud
+│       ├── services/
+│       │   ├── faq.service.ts         ← Generador de FAQs (Gemini o fallback)
+│       │   ├── gemini.service.ts      ← Cliente de Gemini API
+│       │   ├── intent.service.ts      ← Detección de intents y entidades
+│       │   ├── sessionStore.service.ts← Base de datos de sesiones en memoria
+│       │   └── upstreamMocks.service.ts← Adaptadores de API e integraciones mockeadas
+│       ├── app.ts                     ← Configuración de Express
+│       └── server.ts                  ← Inicialización del servidor
 ├── frontend/                          ← Interfaz web visual
 ├── postman/
 │   └── chatbot-service.postman_collection.json  ← Colección importable
@@ -109,10 +111,12 @@ chat bot/
 │   ├── GEMINI.md
 │   ├── INTEGRACIONES.md
 │   └── LOGICA.md
+├── package.json                       ← Dependencias y scripts npm
+├── tsconfig.json                      ← Configuración de TypeScript
 └── scripts/
     ├── smoke-test.mjs                 ← Test rápido (npm run smoke)
     └── set-gemini-key.ps1
-```
+
 
 ---
 
@@ -121,8 +125,8 @@ chat bot/
 ### 4.1 Message
 
 Representa un mensaje individual dentro de una conversación.  
-**Archivo:** `backend/src/models/Message.js`  
-**Equivalente TypeScript (E2 Mock):** `chatbot-service-main/src/infrastructure/mock_database.ts`
+**Archivo:** `backend/src/models/chat.model.ts`  
+**Equivalente TypeScript (E2 Mock):** `backend/src/models/chat.model.ts`
 
 | Campo | Tipo | Descripción |
 |---|---|---|
@@ -142,8 +146,8 @@ Representa un mensaje individual dentro de una conversación.
 ```
 
 **Factory:**
-```js
-import { createMessage } from "../models/Message.js";
+```ts
+import { createMessage } from "../models/chat.model.js";
 const msg = createMessage("assistant", "Tu pedido está en camino.", "order_status");
 ```
 
@@ -152,8 +156,8 @@ const msg = createMessage("assistant", "Tu pedido está en camino.", "order_stat
 ### 4.2 Session
 
 Representa una sesión de conversación completa.  
-**Archivo:** `backend/src/models/Session.js`  
-**Equivalente TypeScript (E2 Mock):** `chatbot-service-main/src/infrastructure/mock_database.ts`
+**Archivo:** `backend/src/models/chat.model.ts`  
+**Equivalente TypeScript (E2 Mock):** `backend/src/models/chat.model.ts`
 
 | Campo | Tipo | Descripción |
 |---|---|---|
@@ -186,8 +190,8 @@ Representa una sesión de conversación completa.
 ```
 
 **Factory:**
-```js
-import { createSession } from "../models/Session.js";
+```ts
+import { createSession } from "../models/chat.model.js";
 const session = createSession("550e8400-e29b-41d4-a716-446655440000", "USR-01");
 ```
 
@@ -204,7 +208,7 @@ Verifica el estado del servicio y sus dependencias. **No requiere X-Api-Key.**
 | Método | `GET` |
 | URL | `/health` |
 | Auth | No requerida |
-| Router | `routers/healthRouter.js` |
+| Router | `backend/src/routes/health.route.ts` & `backend/src/controllers/health.controller.ts` |
 
 **Response 200:**
 ```json
@@ -223,16 +227,16 @@ Verifica el estado del servicio y sus dependencias. **No requiere X-Api-Key.**
 
 ---
 
-### 5.2 POST /chat/message
+### 5.2 POST /chat
 
 Endpoint principal conversacional. Recibe un mensaje, detecta el intent, consulta servicios externos y devuelve una respuesta.
 
 | Campo | Valor |
 |---|---|
 | Método | `POST` |
-| URL | `/chat/message` |
+| URL | `/chat` |
 | Auth | `X-Api-Key` obligatorio |
-| Router | `routers/chatRouter.js` |
+| Router | `backend/src/routes/chat.route.ts` & `backend/src/controllers/chat.controller.ts` |
 
 **Headers requeridos:**
 
@@ -271,16 +275,16 @@ Endpoint principal conversacional. Recibe un mensaje, detecta el intent, consult
 
 ---
 
-### 5.3 GET /chat/session/{session_id}
+### 5.3 GET /chat/sessions/{sessionId}
 
 Retorna el historial completo de mensajes de una sesión.
 
 | Campo | Valor |
 |---|---|
 | Método | `GET` |
-| URL | `/chat/session/{session_id}` |
+| URL | `/chat/sessions/{sessionId}` |
 | Auth | `X-Api-Key` obligatorio |
-| Router | `routers/sessionRouter.js` |
+| Router | `backend/src/routes/chat.route.ts` & `backend/src/controllers/chat.controller.ts` |
 
 **Response 200:** objeto `Session` completo (ver sección 4.2).
 
@@ -304,7 +308,7 @@ Retorna preguntas frecuentes por categoría (generadas por Gemini o desde fallba
 | Método | `GET` |
 | URL | `/chat/faq/{category}` |
 | Auth | `X-Api-Key` obligatorio |
-| Router | `routers/faqRouter.js` |
+| Router | `backend/src/routes/chat.route.ts` & `backend/src/controllers/chat.controller.ts` |
 
 **Categorías válidas:**
 
@@ -312,8 +316,8 @@ Retorna preguntas frecuentes por categoría (generadas por Gemini o desde fallba
 |---|---|
 | `faq_envios` | Tiempos, zonas y seguimiento de despacho |
 | `faq_pagos` | Métodos de pago, reembolsos y cuotas |
-| `faq_cuenta` | Registro, contraseña y gestión de cuenta |
-| `faq_productos` | Catálogo, devoluciones y garantías |
+| `faq_productos` | Catálogo, stock, autenticidad y marcas |
+| `faq_devoluciones`| Políticas de devolución, plazos y requisitos |
 
 **Response 200:**
 ```json
@@ -403,7 +407,7 @@ postman/chatbot-service.postman_collection.json
 Si eres otro grupo y quieres llamar al chatbot-service, aquí el contrato mínimo:
 
 ```http
-POST http://localhost:3000/chat/message
+POST http://localhost:3000/chat
 X-Api-Key: mk-chatbot-abc123xyz
 X-Request-Id: <UUID único>
 X-Correlation-Id: <UUID de tu flujo>
@@ -437,7 +441,7 @@ El chatbot retorna:
 
 | Modo | Configuración | Comportamiento |
 |---|---|---|
-| **Mock (E2)** | `MOCK_MODE=true` (default) | Usa `infrastructure/mockData.js` en vez de llamar a los grupos reales |
+| **Mock (E2)** | `MOCK_MODE=true` (default) | Usa `backend/src/services/upstreamMocks.service.ts` en vez de llamar a los grupos reales |
 | **Real (E3+)** | `MOCK_MODE=false` + URLs en `.env` | Llama a las APIs reales de G2, G3, G5, G6, G7, G8, G9 |
 
 Cuando `MOCK_MODE=true`, los datos simulados son:

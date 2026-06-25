@@ -5,8 +5,8 @@ API local del chatbot de soporte para Mini Marketplace Cloud.
 ## Que hace
 
 - Incluye interfaz web visual en `http://localhost:3000`.
-- Expone `POST /chat/message`.
-- Expone `GET /chat/session/{session_id}`.
+- Expone `POST /chat`.
+- Expone `GET /chat/sessions/{sessionId}`.
 - Detecta intents principales del contrato: pedidos, pagos, despacho, productos, stock, notificaciones y FAQ.
 - Usa Gemini por REST cuando `GEMINI_API_KEY` esta configurada.
 - Usa respuestas locales de respaldo si Gemini falla o no hay clave.
@@ -14,9 +14,9 @@ API local del chatbot de soporte para Mini Marketplace Cloud.
 
 ## Tecnologias segun la arquitectura
 
-- Backend: Node.js.
-- API: REST con endpoints `/chat/message` y `/chat/session/{session_id}`.
-- IA: Gemini API, opcional mientras exista cuota gratis.
+- Backend: Node.js (>=20), TypeScript, Express 4.
+- API: REST con endpoints `/chat` y `/chat/sessions/{sessionId}`.
+- IA: Gemini API (gemini-2.0-flash-lite), opcional mientras exista cuota gratis.
 - Persistencia final esperada: Supabase PostgreSQL.
 - Integraciones externas: G2, G3, G5, G6, G7, G8, G9 y G10.
 - Despliegue esperado: Render.com o equivalente.
@@ -48,7 +48,7 @@ La API queda en:
 http://localhost:3000
 ```
 
-Con `npm run dev`, la terminal muestra el link para abrir el chatbot. El navegador no se abre automaticamente.
+Con `npm run dev` (que ejecuta `tsx watch backend/src/server.ts`), la terminal muestra el link para abrir el chatbot. El navegador no se abre automaticamente.
 Si el puerto `3000` esta ocupado, el servidor intenta automaticamente con `3001`, `3002`, etc. Usa siempre el link que aparece en la terminal.
 
 Si quieres que se abra el navegador automaticamente, usa:
@@ -73,7 +73,7 @@ Abre la carpeta del proyecto y ejecuta:
 npm run build
 ```
 
-Este comando valida la sintaxis de todos los archivos JavaScript del proyecto.
+Este comando compila todo el proyecto TypeScript usando `tsc` y genera la carpeta de salida `backend/dist/`.
 
 Para ejecutar desde VS Code:
 
@@ -85,12 +85,12 @@ O usa `Run and Debug` con la configuracion `Run chatbot`.
 
 ## Donde esta cada cosa
 
-- Interfaz visual: `public/`.
-- API REST propia: `src/app.js`.
-- Logica de intents y orquestacion: `src/application/`.
-- Conexion con Gemini: `src/infrastructure/geminiClient.js`.
-- APIs de otros grupos: `src/infrastructure/apiAdapters.js`.
-- Datos falsos mientras faltan APIs reales: `src/infrastructure/mockData.js`.
+- Interfaz visual: `frontend/`.
+- API REST y Servidor Express: `backend/src/app.ts` y `backend/src/server.ts`.
+- Logica de intents y entidades: `backend/src/services/intent.service.ts`.
+- Conexion con Gemini: `backend/src/services/gemini.service.ts`.
+- Mocks y adaptadores de otros grupos: `backend/src/services/upstreamMocks.service.ts`.
+- Persistencia de sesiones en memoria: `backend/src/services/sessionStore.service.ts`.
 - Documentacion interna: `docs/`.
 
 Lee especialmente:

@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-function loadDotEnv() {
-  const envPath = resolve(process.cwd(), ".env");
+function loadDotEnv(): void {
+  const __dirname = resolve(fileURLToPath(import.meta.url), "..");
+  const envPath = resolve(__dirname, "../../../.env");
 
   if (!existsSync(envPath)) {
     return;
@@ -33,7 +35,7 @@ function loadDotEnv() {
 
 loadDotEnv();
 
-function boolEnv(name, fallback) {
+function boolEnv(name: string, fallback: boolean): boolean {
   const value = process.env[name];
 
   if (value === undefined || value === "") {
@@ -43,7 +45,31 @@ function boolEnv(name, fallback) {
   return ["1", "true", "yes", "on"].includes(value.toLowerCase());
 }
 
-export const config = {
+export interface GeminiConfig {
+  apiKey: string;
+  model: string;
+  enabled: boolean;
+}
+
+export interface ServicesConfig {
+  auth: string;
+  catalog: string;
+  order: string;
+  payment: string;
+  inventory: string;
+  shipping: string;
+  notification: string;
+  reporting: string;
+}
+
+export interface AppConfig {
+  port: number;
+  gemini: GeminiConfig;
+  mockMode: boolean;
+  services: ServicesConfig;
+}
+
+export const config: AppConfig = {
   port: Number(process.env.PORT ?? 3000),
   gemini: {
     apiKey: process.env.GEMINI_API_KEY ?? "",

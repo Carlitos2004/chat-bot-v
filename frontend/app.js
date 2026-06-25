@@ -172,7 +172,7 @@ async function sendMessage(text) {
   const loadingEl = appendMessage("assistant", null, null, true);
 
   try {
-    const response = await fetch("/chat/message", {
+    const response = await fetch("/chat", {
       method: "POST",
       headers: {
         "content-type": "application/json",

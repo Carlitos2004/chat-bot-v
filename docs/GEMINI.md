@@ -4,9 +4,8 @@ El chatbot no tiene una "API de Gemini" propia. Tiene una API REST local y, por 
 
 ## Archivos importantes
 
-- `src/infrastructure/geminiClient.js`: hace la llamada real a Gemini por HTTPS.
-- `src/application/processMessage.js`: decide cuando llamar a Gemini y cuando usar fallback local.
-- `src/application/responseBuilder.js`: arma el prompt y las respuestas de respaldo.
+- `backend/src/services/gemini.service.ts`: hace la llamada real a Gemini por HTTPS usando `fetch` nativo.
+- `backend/src/controllers/chat.controller.ts`: orquesta la llamada a Gemini, arma el prompt y maneja las respuestas fallback de respaldo.
 - `scripts/set-gemini-key.ps1`: crea el archivo `.env` con tu API key. No contiene respuestas del chatbot.
 
 ## Como se conecta
@@ -14,10 +13,10 @@ El chatbot no tiene una "API de Gemini" propia. Tiene una API REST local y, por 
 Flujo:
 
 ```text
-Usuario -> public/app.js -> POST /chat/message -> processMessage.js -> geminiClient.js -> Gemini API
+Usuario -> frontend/app.js -> POST /chat -> chat.controller.ts -> gemini.service.ts -> Gemini API
 ```
 
-Si Gemini no tiene cuota gratis o falla, `processMessage.js` usa una respuesta local construida con los datos mock o con las APIs reales de otros grupos.
+Si Gemini no tiene cuota gratis o falla, `chat.controller.ts` usa una respuesta local construida con los datos mock o con las APIs reales de otros grupos.
 
 ## Donde va la clave
 
