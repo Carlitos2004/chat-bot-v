@@ -67,7 +67,7 @@ export function extractEntities(message: string): {
   orderId: string;
   productQuery: string;
 } {
-  const orderMatch = message.match(/\b(?:ORD[-\s]?)?\d{3,}\b/i);
+  const orderMatch = message.match(/\b(?:ORD[-\s]?)?\d+\b/i);
   const productMatch = message.match(
     /(?:producto|stock|disponible|precio|catalogo)\s+(?:de\s+|del\s+|para\s+)?(.+)/i
   );
@@ -90,7 +90,7 @@ function includesAny(value: string, candidates: string[]): boolean {
 }
 
 function normalizeOrderId(value: string): string {
-  const digits = value.match(/\d{3,}/)?.[0] ?? "1001";
+  const digits = value.match(/\d+/)?.[0] ?? "1001";
   return `ORD-${digits}`;
 }
 

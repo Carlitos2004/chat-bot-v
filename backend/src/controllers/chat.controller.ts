@@ -47,19 +47,62 @@ function buildFallbackResponse({
   entities: { orderId: string; productQuery: string };
 }): string {
   switch (intent) {
-    case "order_status":
-      return `Tu pedido ${context.order.id} esta ${context.order.status}. Total: $${context.order.totalAmount}.`;
+    case "order_status": {
+      if (!context.order) {
+        return `No pudimos encontrar ningún pedido con el número ${entities.orderId}.`;
+      }
+      const reqId = entities.orderId;
+      const retId = context.order.orderId || context.order.id;
+      if (reqId !== retId) {
+        return `El pedido ${reqId} no existe en el sistema de pedidos. Como simulación de pruebas, te muestro la información del pedido de demostración ${retId}: se encuentra en estado ${context.order.status} por un total de $${context.order.totalAmount}.`;
+      }
+      return `Tu pedido ${retId} esta ${context.order.status}. Total: $${context.order.totalAmount}.`;
+    }
 
-    case "payment_status":
-      return `El pago del pedido ${context.order.id} esta ${context.payment.status}. Monto: $${context.payment.amount}.`;
+    case "payment_status": {
+      if (!context.order) {
+        return `No pudimos encontrar ningún pedido con el número ${entities.orderId} para verificar su pago.`;
+      }
+      const reqId = entities.orderId;
+      const retId = context.order.orderId || context.order.id;
+      if (reqId !== retId) {
+        const paymentStatus = context.payment?.status ?? "PENDIENTE";
+        const paymentAmount = context.payment?.amount ?? 0;
+        return `El pedido ${reqId} no existe. Como simulación para el pedido ${retId}, el pago se encuentra en estado ${paymentStatus} por un monto de $${paymentAmount}.`;
+      }
+      if (!context.payment) {
+        return `No se encontró información de pago para el pedido ${retId}.`;
+      }
+      return `El pago del pedido ${retId} esta ${context.payment.status}. Monto: $${context.payment.amount}.`;
+    }
 
-    case "shipping_status":
-      return `Tu pedido ${context.order.id} esta en estado logistico ${context.shipment.status}. Tracking: ${context.shipment.trackingNumber}. ETA: ${context.shipment.eta}.`;
+    case "shipping_status": {
+      if (!context.order) {
+        return `No pudimos encontrar ningún pedido con el número ${entities.orderId} para verificar su envío.`;
+      }
+      const reqId = entities.orderId;
+      const retId = context.order.orderId || context.order.id;
+      if (reqId !== retId) {
+        const trackingNum = context.shipment?.trackingNumber ?? "SIN-TRACKING";
+        const shippingStatus = context.shipment?.status ?? "PENDIENTE";
+        return `El pedido ${reqId} no existe. Como simulación para el pedido ${retId}, se encuentra en estado logístico ${shippingStatus} (Tracking: ${trackingNum}).`;
+      }
+      if (!context.shipment) {
+        return `No se encontró información de envío para el pedido ${retId}.`;
+      }
+      return `Tu pedido ${retId} esta en estado logistico ${context.shipment.status}. Tracking: ${context.shipment.trackingNumber}. ETA: ${context.shipment.eta}.`;
+    }
 
     case "product_info":
+      if (!context.product) {
+        return `No pudimos encontrar información del producto ${entities.productQuery}.`;
+      }
       return `${context.product.name}: ${context.product.description}. Precio: $${context.product.price}.`;
 
     case "stock_info":
+      if (!context.product) {
+        return `No pudimos verificar el stock porque el producto ${entities.productQuery} no existe en el catálogo.`;
+      }
       return context.inventory.available
         ? `Si, ${context.product.name} esta disponible. Quedan ${context.inventory.quantity} unidades.`
         : `Por ahora ${context.product.name} no tiene stock disponible.`;
@@ -95,6 +138,10 @@ async function collectContext({
   correlationId: string;
 }) {
   const adapters = getAdapters({ headers, correlationId });
+  const isMock = config.mockMode;
+
+  const getSource = (serviceName: string, url: string) =>
+    (!isMock && url) ? serviceName : `${serviceName} (simulado)`;
 
   switch (intent) {
     case "order_status": {
@@ -102,7 +149,10 @@ async function collectContext({
         entities.orderId,
         userId || ""
       );
-      return { sources: ["order-service"], order };
+      return {
+        sources: [getSource("Pedidos", config.services.order)],
+        order,
+      };
     }
 
     case "payment_status": {
@@ -110,9 +160,14 @@ async function collectContext({
         entities.orderId,
         userId || ""
       );
-      const payment = await adapters.payments.getPaymentByOrderId(order.id);
+      const payment = order
+        ? await adapters.payments.getPaymentByOrderId(order.orderId || order.id)
+        : null;
       return {
-        sources: ["order-service", "payment-service"],
+        sources: [
+          getSource("Pedidos", config.services.order),
+          getSource("Pagos", config.services.payment),
+        ],
         order,
         payment,
       };
@@ -123,9 +178,14 @@ async function collectContext({
         entities.orderId,
         userId || ""
       );
-      const shipment = await adapters.shipping.getShipmentByOrderId(order.id);
+      const shipment = order
+        ? await adapters.shipping.getShipmentByOrderId(order.orderId || order.id)
+        : null;
       return {
-        sources: ["order-service", "shipping-service"],
+        sources: [
+          getSource("Pedidos", config.services.order),
+          getSource("Envíos", config.services.shipping),
+        ],
         order,
         shipment,
       };
@@ -135,16 +195,24 @@ async function collectContext({
       const product = await adapters.catalog.findProduct(
         entities.productQuery
       );
-      return { sources: ["catalog-service"], product };
+      return {
+        sources: [getSource("Catálogo", config.services.catalog)],
+        product,
+      };
     }
 
     case "stock_info": {
       const product = await adapters.catalog.findProduct(
         entities.productQuery
       );
-      const inventory = await adapters.inventory.getInventory(product.id);
+      const inventory = product
+        ? await adapters.inventory.getInventory(product.id)
+        : { productId: "", quantity: 0, available: false };
       return {
-        sources: ["catalog-service", "inventory-service"],
+        sources: [
+          getSource("Catálogo", config.services.catalog),
+          getSource("Inventario", config.services.inventory),
+        ],
         product,
         inventory,
       };
@@ -154,7 +222,10 @@ async function collectContext({
       const notifications = await adapters.notifications.getNotifications(
         userId || ""
       );
-      return { sources: ["notification-service"], notifications };
+      return {
+        sources: [getSource("Notificaciones", config.services.notification)],
+        notifications,
+      };
     }
 
     case "faq":
@@ -189,6 +260,40 @@ async function maybeGenerateWithGemini({
       error.message
     );
     return "";
+  }
+}
+
+function getRequiredServices(intent: string): string[] {
+  switch (intent) {
+    case "order_status":
+      return ["order"];
+    case "payment_status":
+      return ["order", "payment"];
+    case "shipping_status":
+      return ["order", "shipping"];
+    case "product_info":
+      return ["catalog"];
+    case "stock_info":
+      return ["catalog", "inventory"];
+    case "notifications":
+      return ["notification"];
+    default:
+      return [];
+  }
+}
+
+function isServiceConfigured(serviceName: string): boolean {
+  if (config.mockMode) return true;
+
+  switch (serviceName) {
+    case "auth": return !!config.services.auth;
+    case "catalog": return !!config.services.catalog;
+    case "order": return !!config.services.order;
+    case "payment": return !!config.services.payment;
+    case "inventory": return !!config.services.inventory;
+    case "shipping": return !!config.services.shipping;
+    case "notification": return !!config.services.notification;
+    default: return true;
   }
 }
 
@@ -253,6 +358,54 @@ export async function sendMessage(req: Request, res: Response) {
       code: "UNAUTHORIZED",
       message: errorResponseText,
       correlationId,
+    });
+  }
+
+  const required = getRequiredServices(intent);
+  const missing = required.filter(s => !isServiceConfigured(s));
+
+  if (missing.length > 0) {
+    const serviceNamesMap: Record<string, string> = {
+      auth: "Autenticación",
+      catalog: "Catálogo",
+      order: "Pedidos",
+      payment: "Pagos",
+      inventory: "Inventario",
+      shipping: "Envíos",
+      notification: "Notificaciones"
+    };
+    const active = required.filter(s => isServiceConfigured(s));
+    
+    let responseText = "";
+    if (active.length > 0) {
+      const activeNames = active.map(s => serviceNamesMap[s] || s).join(" y ");
+      const missingNames = missing.map(s => serviceNamesMap[s] || s).join(" y ");
+      responseText = `El módulo de ${activeNames} está activo, pero este apartado está inactivo porque requiere también el módulo de ${missingNames}, el cual no está configurado.`;
+    } else {
+      const missingNames = missing.map(s => serviceNamesMap[s] || s).join(" y ");
+      responseText = `Este apartado está inactivo porque requiere el módulo de ${missingNames}, el cual no está configurado.`;
+    }
+    const timestamp = new Date().toISOString();
+
+    appendMessage(sessionId, {
+      role: "assistant",
+      content: responseText,
+      intent_detected: intent,
+      timestamp,
+    });
+
+    const sourcesConsulted = [
+      ...active.map(s => serviceNamesMap[s] || s),
+      ...missing.map(s => `${serviceNamesMap[s] || s} (inactivo)`)
+    ];
+
+    return res.status(200).json({
+      session_id: sessionId,
+      response: responseText,
+      intent_detected: intent,
+      sources_consulted: sourcesConsulted,
+      correlation_id: correlationId,
+      timestamp,
     });
   }
 

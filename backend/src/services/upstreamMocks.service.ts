@@ -142,11 +142,18 @@ function buildOutgoingHeaders({
 async function findProduct(query: string, headers: Record<string, string>) {
   if (!config.mockMode && config.services.catalog) {
     const params = new URLSearchParams({ q: query });
-    const products = await fetchJson(
-      `${config.services.catalog}/products?${params}`,
-      headers
-    );
-    return Array.isArray(products) ? products[0] : products;
+    try {
+      const products = await fetchJson(
+        `${config.services.catalog}/products?${params}`,
+        headers
+      );
+      return Array.isArray(products) ? products[0] : products;
+    } catch (err: any) {
+      if (err.message.includes("(404)")) {
+        return null;
+      }
+      throw err;
+    }
   }
 
   const normalized = query.toLowerCase();
@@ -163,10 +170,17 @@ async function getOrder(
   headers: Record<string, string>
 ) {
   if (!config.mockMode && config.services.order) {
-    return fetchJson(
-      `${config.services.order}/orders/${encodeURIComponent(orderId)}`,
-      headers
-    );
+    try {
+      return await fetchJson(
+        `${config.services.order}/orders/${encodeURIComponent(orderId)}`,
+        headers
+      );
+    } catch (err: any) {
+      if (err.message.includes("(404)")) {
+        return null;
+      }
+      throw err;
+    }
   }
 
   return (
@@ -186,10 +200,17 @@ async function getPaymentByOrderId(
 ) {
   if (!config.mockMode && config.services.payment) {
     const params = new URLSearchParams({ orderId });
-    return fetchJson(
-      `${config.services.payment}/payments?${params}`,
-      headers
-    );
+    try {
+      return await fetchJson(
+        `${config.services.payment}/payments?${params}`,
+        headers
+      );
+    } catch (err: any) {
+      if (err.message.includes("(404)")) {
+        return null;
+      }
+      throw err;
+    }
   }
 
   return (
@@ -204,10 +225,21 @@ async function getPaymentByOrderId(
 
 async function getInventory(productId: string, headers: Record<string, string>) {
   if (!config.mockMode && config.services.inventory) {
-    return fetchJson(
-      `${config.services.inventory}/inventory/${encodeURIComponent(productId)}`,
-      headers
-    );
+    try {
+      return await fetchJson(
+        `${config.services.inventory}/inventory/${encodeURIComponent(productId)}`,
+        headers
+      );
+    } catch (err: any) {
+      if (err.message.includes("(404)")) {
+        return {
+          productId,
+          quantity: 0,
+          available: false,
+        };
+      }
+      throw err;
+    }
   }
 
   return (
@@ -225,10 +257,17 @@ async function getShipmentByOrderId(
 ) {
   if (!config.mockMode && config.services.shipping) {
     const params = new URLSearchParams({ orderId });
-    return fetchJson(
-      `${config.services.shipping}/shipments?${params}`,
-      headers
-    );
+    try {
+      return await fetchJson(
+        `${config.services.shipping}/shipments?${params}`,
+        headers
+      );
+    } catch (err: any) {
+      if (err.message.includes("(404)")) {
+        return null;
+      }
+      throw err;
+    }
   }
 
   return (

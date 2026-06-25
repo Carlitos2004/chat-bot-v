@@ -293,6 +293,11 @@ button, textarea, input {
   color: #f87171;
 }
 
+.dep-badge.inactive {
+  background: rgba(156, 163, 175, 0.15);
+  color: #9ca3af;
+}
+
 .dep-loading {
   font-size: 12px;
   color: var(--text-muted);
@@ -670,6 +675,23 @@ button, textarea, input {
 .action-icon-btn svg {
   width: 14px;
   height: 14px;
+  transition: fill var(--t-fast);
+}
+
+.action-icon-btn.active[title="Me gusta"] {
+  color: #1a7ff0;
+  background-color: rgba(26, 127, 240, 0.1);
+}
+.action-icon-btn.active[title="Me gusta"] svg {
+  fill: currentColor;
+}
+
+.action-icon-btn.active[title="No me gusta"] {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+.action-icon-btn.active[title="No me gusta"] svg {
+  fill: currentColor;
 }
 
 /* Loader */
@@ -846,10 +868,6 @@ button, textarea, input {
   /* En mobile, el toggle del header reemplaza al del sidebar */
   .sidebar-toggle-mobile {
     display: flex;
-  }
-
-  #toggle-sidebar {
-    display: none;
   }
 
   #open-sidebar {

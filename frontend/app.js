@@ -117,11 +117,19 @@ bindSuggestionCards(messagesWrap);
 // ==============================================
 
 clearBtn.addEventListener("click", () => {
-  messageCount = 0;
-  sessionId = crypto.randomUUID(); // Generar una nueva sesión de chat
-  messagesWrap.innerHTML = buildWelcomeScreen();
-  bindSuggestionCards(messagesWrap);
-  input.focus();
+  messagesWrap.style.transition = "opacity 0.2s ease";
+  messagesWrap.style.opacity = "0";
+  setTimeout(() => {
+    messageCount = 0;
+    sessionId = crypto.randomUUID(); // Generar una nueva sesión de chat
+    messagesWrap.innerHTML = buildWelcomeScreen();
+    bindSuggestionCards(messagesWrap);
+    messagesWrap.style.opacity = "1";
+    input.focus();
+    if (window.innerWidth <= 768) {
+      collapseSidebar();
+    }
+  }, 200);
 });
 
 function buildWelcomeScreen() {
@@ -270,13 +278,6 @@ function appendMessage(role, text, meta = null, isLoading = false) {
           <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path>
         </svg>
       </button>
-      <button class="action-icon-btn" title="Compartir" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-          <polyline points="16 6 12 2 8 6"></polyline>
-          <line x1="12" y1="2" x2="12" y2="15"></line>
-        </svg>
-      </button>
       <button class="action-icon-btn" title="Regenerar respuesta" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
@@ -291,6 +292,21 @@ function appendMessage(role, text, meta = null, isLoading = false) {
           copyBtn.style.color = "#34d399";
           setTimeout(() => { copyBtn.style.color = ""; }, 1500);
         });
+      });
+    }
+
+    const likeBtn = actions.querySelector('[title="Me gusta"]');
+    const dislikeBtn = actions.querySelector('[title="No me gusta"]');
+    if (likeBtn) {
+      likeBtn.addEventListener("click", () => {
+        likeBtn.classList.toggle("active");
+        if (dislikeBtn) dislikeBtn.classList.remove("active");
+      });
+    }
+    if (dislikeBtn) {
+      dislikeBtn.addEventListener("click", () => {
+        dislikeBtn.classList.toggle("active");
+        if (likeBtn) likeBtn.classList.remove("active");
       });
     }
     
@@ -342,10 +358,25 @@ async function checkHealth() {
         let badgeClass = "error";
         let badgeText = "error";
 
-        if (status === "ok") { badgeClass = "ok"; badgeText = "activo"; }
-        else if (status === "mocked") { badgeClass = "mock"; badgeText = "simulado"; }
+        if (status === "ok") {
+          badgeClass = "ok";
+          badgeText = "activo";
+        } else if (status === "ok (mock)" || status === "mocked" || status === "not_configured") {
+          badgeClass = "inactive";
+          badgeText = "inactivo";
+        }
 
-        const cleanName = name.replace(/_/g, " ").replace("service", "").trim();
+        const spanishNames = {
+          gemini: "Gemini",
+          auth_service: "Autenticación",
+          catalog_service: "Catálogo",
+          order_service: "Pedidos",
+          payment_service: "Pagos",
+          inventory_service: "Inventario",
+          shipment_service: "Envíos",
+          notification_service: "Notificaciones"
+        };
+        const cleanName = spanishNames[name] || name;
 
         li.innerHTML = `
           <span class="dep-name">${cleanName}</span>
@@ -373,3 +404,6 @@ async function checkHealth() {
 
 // --- Inicializar ---
 checkHealth();
+if (window.innerWidth <= 768) {
+  collapseSidebar();
+}

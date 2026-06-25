@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --include ../.env src/server.ts",
     "open": "tsx src/server.ts --open",
     "start": "node dist/server.js"
   },
