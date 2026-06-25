@@ -17,7 +17,7 @@ export function authMiddleware(
       timestamp: new Date().toISOString(),
       status: 401,
       code: "MISSING_API_KEY",
-      message: "Se requiere el header X-Api-Key para acceder a este servicio.",
+      message: "Falta la cabecera de seguridad obligatoria: Se requiere incluir el header 'X-Api-Key' para autorizar el acceso a la API del Chatbot.",
       correlationId: correlationId || null,
     });
   }
@@ -27,7 +27,7 @@ export function authMiddleware(
       timestamp: new Date().toISOString(),
       status: 401,
       code: "INVALID_API_KEY",
-      message: "La API Key proporcionada no es válida.",
+      message: "La contraseña de acceso ('X-Api-Key') enviada es incorrecta. Verifica que el valor coincida con la API Key configurada en el servidor.",
       correlationId: correlationId || null,
     });
   }
