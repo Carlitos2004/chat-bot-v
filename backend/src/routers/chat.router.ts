@@ -17,14 +17,14 @@ const router = Router();
 router.use(authMiddleware);
 
 /**
- * ENDPOINT: POST /chat
+ * ENDPOINT: POST /chat/message
  * 
  * - Tipo: Privado (Exige el header X-Api-Key).
  * - Función: Recibe la pregunta del usuario, detecta la intención, consulta 
  *            los datos de microservicios externos y responde.
- * - Parámetros requeridos en Body: session_id (UUID), message (string).
+ * - Parámetros requerido en Body: session_id (UUID), message (string).
  * - Controlador: sendMessage en chat.controller.ts
  */
-router.post("/chat", sendMessage);
+router.post("/chat/message", sendMessage);
 
 export default router;
