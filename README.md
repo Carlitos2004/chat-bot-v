@@ -4,31 +4,37 @@ Este microservicio actúa como la capa de atención, orquestación e integració
 
 En esta fase actual, el proyecto implementa un Mock Funcional Inteligente alineado al contrato estricto para desbloquear las integraciones tempranas.
 
-## Que hace
+## Características (v1.1)
+- **Interfaz Visual**: Incluida para pruebas en `http://localhost:3000`.
+- **Endpoints Oficiales:**
+  - `POST /chat`: Procesamiento de mensajes de lenguaje natural.
+  - `GET /chat/sessions/{sessionId}`: Recuperación de historial conversacional.
+  - `GET /chat/faq/{category}`: Consultas de preguntas frecuentes (categorizadas estrictamente en envíos, pagos, productos y despacho).
+  - `GET /health`: Monitoreo de salud del servicio y dependencias.
+- **Seguridad Obligatoria:** Requiere `X-Api-Key` en los headers de todas las peticiones.
+- **Motor de IA:** Integración con Gemini API (`Gemini 3.1 Flash Lite`) por REST.
+- **Resiliencia:** Uso de mocks locales de los otros grupos si fallan las integraciones o faltan URLs reales.
 
-- Incluye interfaz web visual en `http://localhost:3000`.
-- Expone `POST /chat`.
-- Expone `GET /chat/sessions/{sessionId}`.
-- Detecta intents principales del contrato: pedidos, pagos, despacho, productos, stock, notificaciones y FAQ.
-- Usa Gemini por REST cuando `GEMINI_API_KEY` esta configurada.
-- Usa respuestas locales de respaldo si Gemini falla o no hay clave.
-- Usa mocks de los otros grupos mientras falten URLs reales.
+## Stack Tecnológico
+- **Backend:** Node.js (>=20), TypeScript, Express.
+- **Seguridad:** Middleware de validación de API Key y retransmisión de JWT.
+- **Base de Datos:** Supabase (PostgreSQL).
+- **Despliegue:** Render.com.
 
-## Tecnologias segun la arquitectura
+## Estructura del Proyecto
+Se utiliza una arquitectura limpia basada en Express, eliminando el anidamiento innecesario:
 
-- Backend: Node.js (>=20), TypeScript, Express 4.
-- API: REST con endpoints `/chat` y `/chat/sessions/{sessionId}`.
-- IA: Gemini API (gemini-2.0-flash-lite), opcional mientras exista cuota gratis.
-- Persistencia final esperada: Supabase PostgreSQL.
-- Integraciones externas: G2, G3, G5, G6, G7, G8, G9 y G10.
-- Despliegue esperado: Render.com o equivalente.
+- `src/app.ts` y `src/server.ts`: Configuración de Express y arranque del servidor.
+- `src/routes/`: Definición de rutas (`/chat`, `/health`).
+- `src/controllers/`: Lógica de entrada/salida HTTP.
+- `src/middlewares/`: Interceptores de seguridad (ej. `auth.middleware.ts` para X-Api-Key).
+- `src/services/`: Orquestador, conexión con Gemini y mocks de upstream (G2-G9).
+- `src/models/`: Interfaces y DTOs fuertemente tipados.
+- `frontend/`: Archivos estáticos de la interfaz web.
+- `docs/`: Documentación interna (GEMINI.md, INTEGRACIONES.md).
 
-Esta version local no incluye los documentos de arquitectura, pero implementa su logica: intents, trazabilidad, headers, mocks por grupo y fallback.
-
-## Configuracion
-
-Para usarlo sin Gemini, no necesitas configurar nada.
-
+## Configuración y ejecución
+Para usarlo sin Gemini, no se configura nada.
 Para conectarlo a Gemini:
 
 1. Crea una clave en Google AI Studio.
