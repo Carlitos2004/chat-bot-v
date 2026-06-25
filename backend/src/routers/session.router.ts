@@ -14,10 +14,9 @@ import { authMiddleware } from "../middlewares/auth.middleware.js";
 const router = Router();
 
 // Middleware de seguridad obligatorio: Protege todas las peticiones con X-Api-Key
-router.use(authMiddleware);
 
 /**
- * ENDPOINT: GET /chat/session/:sessionId
+ * ENDPOINT: GET /chat/sessions/:sessionId
  * 
  * - Tipo: Privado (Exige el header X-Api-Key).
  * - Función: Busca la sesión en memoria y retorna su objeto completo con el
@@ -25,6 +24,6 @@ router.use(authMiddleware);
  * - Parámetros en URL: sessionId (UUID enviado en el path).
  * - Controlador: getSessionHistory en session.controller.ts
  */
-router.get("/chat/session/:sessionId", getSessionHistory);
+router.get("/chat/sessions/:sessionId", authMiddleware, getSessionHistory);
 
 export default router;

@@ -14,7 +14,6 @@ import { authMiddleware } from "../middlewares/auth.middleware.js";
 const router = Router();
 
 // Middleware de seguridad obligatorio: Protege todas las peticiones con X-Api-Key
-router.use(authMiddleware);
 
 /**
  * ENDPOINT: GET /chat/faq/:category
@@ -25,6 +24,6 @@ router.use(authMiddleware);
  * - Parámetros en URL: category (faq_envios | faq_pagos | faq_productos | faq_devoluciones).
  * - Controlador: getFaqList en faq.controller.ts
  */
-router.get("/chat/faq/:category", getFaqList);
+router.get("/chat/faq/:category", authMiddleware, getFaqList);
 
 export default router;

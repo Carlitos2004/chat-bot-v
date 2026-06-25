@@ -19,7 +19,7 @@
     {
       "key": "session_id",
       "value": "550e8400-e29b-41d4-a716-446655440000",
-      "description": "ID de sesión activa. Actualizar con el session_id del primer POST /chat/message."
+      "description": "ID de sesión activa. Actualizar con el session_id del primer POST /chat."
     }
   ],
   "item": [
@@ -63,11 +63,11 @@
           "options": { "raw": { "language": "json" } }
         },
         "url": {
-          "raw": "{{base_url}}/chat/message",
+          "raw": "{{base_url}}/chat",
           "host": ["{{base_url}}"],
-          "path": ["chat", "message"]
+          "path": ["chat"]
         },
-        "description": "POST /chat/message — Consulta el estado de un pedido.\nRequiere Authorization (JWT) porque es un intent personal (order_status).\n\nEsperado: intent_detected = 'order_status' o 'shipping_status'."
+        "description": "POST /chat — Consulta el estado de un pedido.\nRequiere Authorization (JWT) porque es un intent personal (order_status).\n\nEsperado: intent_detected = 'order_status' o 'shipping_status'."
       },
       "response": [
         {
@@ -103,11 +103,11 @@
           "options": { "raw": { "language": "json" } }
         },
         "url": {
-          "raw": "{{base_url}}/chat/message",
+          "raw": "{{base_url}}/chat",
           "host": ["{{base_url}}"],
-          "path": ["chat", "message"]
+          "path": ["chat"]
         },
-        "description": "POST /chat/message — Consulta pública de stock, NO requiere JWT.\nEsperado: intent_detected = 'stock_info', sources = ['catalog-service', 'inventory-service']."
+        "description": "POST /chat — Consulta pública de stock, NO requiere JWT.\nEsperado: intent_detected = 'stock_info', sources = ['catalog-service', 'inventory-service']."
       },
       "response": [
         {
@@ -136,11 +136,11 @@
           "options": { "raw": { "language": "json" } }
         },
         "url": {
-          "raw": "{{base_url}}/chat/message",
+          "raw": "{{base_url}}/chat",
           "host": ["{{base_url}}"],
-          "path": ["chat", "message"]
+          "path": ["chat"]
         },
-        "description": "POST /chat/message — Pregunta frecuente, no consulta servicios externos.\nEsperado: intent_detected = 'faq', sources_consulted = []."
+        "description": "POST /chat — Pregunta frecuente, no consulta servicios externos.\nEsperado: intent_detected = 'faq', sources_consulted = []."
       },
       "response": [
         {
@@ -162,11 +162,11 @@
           { "key": "X-Correlation-Id", "value": "660e8400-e29b-41d4-a716-446655440444" }
         ],
         "url": {
-          "raw": "{{base_url}}/chat/session/{{session_id}}",
+          "raw": "{{base_url}}/chat/sessions/{{session_id}}",
           "host": ["{{base_url}}"],
-          "path": ["chat", "session", "{{session_id}}"]
+          "path": ["chat", "sessions", "{{session_id}}"]
         },
-        "description": "GET /chat/session/{session_id} — Retorna el historial completo de mensajes.\nUsar el session_id del primer POST /chat/message.\n\nEsperado: objeto Session con array 'messages' que muestra los turnos user/assistant."
+        "description": "GET /chat/sessions/{session_id} — Retorna el historial completo de mensajes.\nUsar el session_id del primer POST /chat.\n\nEsperado: objeto Session con array 'messages' que muestra los turnos user/assistant."
       },
       "response": [
         {
@@ -242,9 +242,9 @@
           "options": { "raw": { "language": "json" } }
         },
         "url": {
-          "raw": "{{base_url}}/chat/message",
+          "raw": "{{base_url}}/chat",
           "host": ["{{base_url}}"],
-          "path": ["chat", "message"]
+          "path": ["chat"]
         },
         "description": "Caso de error: API Key incorrecta.\nEsperado: 401 INVALID_API_KEY."
       },

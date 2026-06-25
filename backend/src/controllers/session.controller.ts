@@ -14,7 +14,7 @@ export function getSessionHistory(req: Request, res: Response) {
       timestamp: new Date().toISOString(),
       status: 404,
       code: "SESSION_NOT_FOUND",
-      message: "No existe una sesión de conversación activa registrada en la memoria del servidor para el identificador (session_id) proporcionado. Recuerda iniciar la conversación enviando primero un mensaje usando POST /chat/message.",
+      message: "No existe una sesión de conversación activa registrada en la memoria del servidor para el identificador (session_id) proporcionado. Recuerda iniciar la conversación enviando primero un mensaje usando POST /chat.",
       correlationId: correlationId || null,
     });
   }

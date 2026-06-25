@@ -20,6 +20,9 @@ app.get("/", (req: Request, res: Response) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 app.use("/assets", express.static(publicDir));
+app.get("/favicon.ico", (req: Request, res: Response) => {
+  res.status(204).end();
+});
 
 // Registrar routers de la API
 app.use(healthRouter);

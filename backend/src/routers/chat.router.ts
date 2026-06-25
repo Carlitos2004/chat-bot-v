@@ -14,10 +14,9 @@ import { authMiddleware } from "../middlewares/auth.middleware.js";
 const router = Router();
 
 // Middleware de seguridad obligatorio: Protege todas las peticiones con X-Api-Key
-router.use(authMiddleware);
 
 /**
- * ENDPOINT: POST /chat/message
+ * ENDPOINT: POST /chat
  * 
  * - Tipo: Privado (Exige el header X-Api-Key).
  * - Función: Recibe la pregunta del usuario, detecta la intención, consulta 
@@ -25,6 +24,6 @@ router.use(authMiddleware);
  * - Parámetros requerido en Body: session_id (UUID), message (string).
  * - Controlador: sendMessage en chat.controller.ts
  */
-router.post("/chat/message", sendMessage);
+router.post("/chat", authMiddleware, sendMessage);
 
 export default router;
