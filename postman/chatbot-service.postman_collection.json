@@ -1,0 +1,262 @@
+{
+  "info": {
+    "_postman_id": "g11-chatbot-service-v1",
+    "name": "Grupo 11 — Chatbot Service",
+    "description": "Colección oficial del chatbot-service (Grupo 11) para el ecosistema Mini Marketplace Cloud.\n\nAdaptada del E2 Mock implementado en chatbot-service-main (TypeScript/Express).\n\n## Cómo usar\n1. Importar este archivo en Postman (File → Import)\n2. Configurar la variable `base_url` (por defecto: http://localhost:3000)\n3. Configurar la variable `api_key` (por defecto: mk-chatbot-abc123xyz)\n4. Ejecutar primero '01 - Verificar salud' para confirmar que el servidor está levantado\n5. Ejecutar '02 - Chat: consulta pedido' y copiar el session_id de la respuesta\n6. Usar ese session_id en '05 - Obtener historial de sesión'\n\n## Variables de colección\n- base_url: URL base del servicio\n- api_key: X-Api-Key del chatbot\n- session_id: UUID de sesión activa (actualizar manualmente tras el primer POST)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "description": "URL base del chatbot-service. Cambiar a la URL de Render cuando esté desplegado."
+    },
+    {
+      "key": "api_key",
+      "value": "mk-chatbot-abc123xyz",
+      "description": "API Key requerida para todos los endpoints /chat/*"
+    },
+    {
+      "key": "session_id",
+      "value": "550e8400-e29b-41d4-a716-446655440000",
+      "description": "ID de sesión activa. Actualizar con el session_id del primer POST /chat/message."
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Verificar salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "GET /health — Verifica que el chatbot-service está levantado.\nNo requiere X-Api-Key.\n\nEsperado: status 200, campo 'status': 'ok' o 'degraded'."
+      },
+      "response": [
+        {
+          "name": "200 OK — Servicio operativo",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"ok\",\n  \"version\": \"1.1\",\n  \"mock_mode\": true,\n  \"dependencies\": {\n    \"gemini\": \"error\",\n    \"auth_service\": \"ok (mock)\",\n    \"catalog_service\": \"ok (mock)\",\n    \"order_service\": \"ok (mock)\",\n    \"payment_service\": \"ok (mock)\",\n    \"inventory_service\": \"ok (mock)\",\n    \"shipment_service\": \"ok (mock)\",\n    \"notification_service\": \"ok (mock)\"\n  },\n  \"timestamp\": \"2026-06-24T21:00:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "02 - Chat: consulta estado de pedido (con JWT)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Api-Key", "value": "{{api_key}}" },
+          { "key": "X-Request-Id", "value": "550e8400-e29b-41d4-a716-446655440001", "description": "UUID único de la petición" },
+          { "key": "X-Correlation-Id", "value": "660e8400-e29b-41d4-a716-446655440111", "description": "ID de trazabilidad del flujo completo" },
+          { "key": "X-Consumer", "value": "chatbot-service" },
+          { "key": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiJ9.mock", "description": "JWT simulado del Grupo 2" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"message\": \"¿Dónde está mi pedido ORD-1001?\",\n  \"context\": {\n    \"user_id\": \"USR-01\"\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/chat/message",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "message"]
+        },
+        "description": "POST /chat/message — Consulta el estado de un pedido.\nRequiere Authorization (JWT) porque es un intent personal (order_status).\n\nEsperado: intent_detected = 'order_status' o 'shipping_status'."
+      },
+      "response": [
+        {
+          "name": "200 OK — Respuesta con estado de pedido",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"session_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"response\": \"Tu pedido ORD-1001 esta EN_TRANSITO. Total: $15990.\",\n  \"intent_detected\": \"order_status\",\n  \"sources_consulted\": [\"order-service\"],\n  \"correlation_id\": \"660e8400-e29b-41d4-a716-446655440111\",\n  \"timestamp\": \"2026-06-24T21:00:00.000Z\"\n}"
+        },
+        {
+          "name": "401 — Sin JWT (consulta personal sin login)",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"UNAUTHORIZED\",\n  \"message\": \"Para consultar informacion personal necesitas iniciar sesion.\",\n  \"correlation_id\": \"660e8400-e29b-41d4-a716-446655440111\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "03 - Chat: consulta stock (sin JWT, consulta pública)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Api-Key", "value": "{{api_key}}" },
+          { "key": "X-Request-Id", "value": "550e8400-e29b-41d4-a716-446655440002" },
+          { "key": "X-Correlation-Id", "value": "660e8400-e29b-41d4-a716-446655440222" },
+          { "key": "X-Consumer", "value": "chatbot-service" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"message\": \"¿Hay stock de Pescas disponibles?\",\n  \"context\": {\n    \"user_id\": null\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/chat/message",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "message"]
+        },
+        "description": "POST /chat/message — Consulta pública de stock, NO requiere JWT.\nEsperado: intent_detected = 'stock_info', sources = ['catalog-service', 'inventory-service']."
+      },
+      "response": [
+        {
+          "name": "200 OK — Stock disponible",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"session_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"response\": \"Si, Pescas esta disponible. Quedan 15 unidades.\",\n  \"intent_detected\": \"stock_info\",\n  \"sources_consulted\": [\"catalog-service\", \"inventory-service\"],\n  \"correlation_id\": \"660e8400-e29b-41d4-a716-446655440222\",\n  \"timestamp\": \"2026-06-24T21:00:02.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "04 - Chat: pregunta frecuente (FAQ)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Api-Key", "value": "{{api_key}}" },
+          { "key": "X-Request-Id", "value": "550e8400-e29b-41d4-a716-446655440003" },
+          { "key": "X-Correlation-Id", "value": "660e8400-e29b-41d4-a716-446655440333" },
+          { "key": "X-Consumer", "value": "chatbot-service" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"message\": \"¿Cuáles son los métodos de pago disponibles?\",\n  \"context\": {\n    \"user_id\": null\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/chat/message",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "message"]
+        },
+        "description": "POST /chat/message — Pregunta frecuente, no consulta servicios externos.\nEsperado: intent_detected = 'faq', sources_consulted = []."
+      },
+      "response": [
+        {
+          "name": "200 OK — Respuesta FAQ",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"session_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"response\": \"Aceptamos tarjetas de credito, debito y transferencia bancaria.\",\n  \"intent_detected\": \"faq\",\n  \"sources_consulted\": [],\n  \"correlation_id\": \"660e8400-e29b-41d4-a716-446655440333\",\n  \"timestamp\": \"2026-06-24T21:00:03.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "05 - Obtener historial de sesión",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Api-Key", "value": "{{api_key}}" },
+          { "key": "X-Request-Id", "value": "550e8400-e29b-41d4-a716-446655440004" },
+          { "key": "X-Correlation-Id", "value": "660e8400-e29b-41d4-a716-446655440444" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/chat/session/{{session_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "session", "{{session_id}}"]
+        },
+        "description": "GET /chat/session/{session_id} — Retorna el historial completo de mensajes.\nUsar el session_id del primer POST /chat/message.\n\nEsperado: objeto Session con array 'messages' que muestra los turnos user/assistant."
+      },
+      "response": [
+        {
+          "name": "200 OK — Historial de sesión",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"session_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"user_id\": \"USR-01\",\n  \"status\": \"active\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"¿Dónde está mi pedido ORD-1001?\",\n      \"intent_detected\": null,\n      \"timestamp\": \"2026-06-24T21:00:00.000Z\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Tu pedido ORD-1001 esta EN_TRANSITO. Total: $15990.\",\n      \"intent_detected\": \"order_status\",\n      \"timestamp\": \"2026-06-24T21:00:01.000Z\"\n    }\n  ]\n}"
+        },
+        {
+          "name": "404 — Sesión no encontrada",
+          "status": "Not Found",
+          "code": 404,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"timestamp\": \"2026-06-24T21:00:00.000Z\",\n  \"status\": 404,\n  \"code\": \"SESSION_NOT_FOUND\",\n  \"message\": \"No existe una sesion con el ID proporcionado.\",\n  \"correlationId\": \"660e8400-e29b-41d4-a716-446655440444\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "06 - FAQ por categoría: pagos",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Api-Key", "value": "{{api_key}}" },
+          { "key": "X-Request-Id", "value": "550e8400-e29b-41d4-a716-446655440005" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/chat/faq/faq_pagos",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "faq", "faq_pagos"]
+        },
+        "description": "GET /chat/faq/{category} — FAQs sobre métodos de pago.\nCategorías válidas: faq_envios | faq_pagos | faq_cuenta | faq_productos"
+      },
+      "response": [
+        {
+          "name": "200 OK — FAQs de pagos",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"category\": \"faq_pagos\",\n  \"items\": [\n    {\n      \"question\": \"¿Cuáles son los métodos de pago disponibles?\",\n      \"answer\": \"Aceptamos tarjetas de débito, crédito y transferencias bancarias directas.\"\n    },\n    {\n      \"question\": \"¿Puedo pagar en cuotas?\",\n      \"answer\": \"Sí, puedes diferir tus compras en hasta 3 cuotas sin interés.\"\n    },\n    {\n      \"question\": \"¿Cómo solicito un reembolso?\",\n      \"answer\": \"Puedes solicitar un reembolso dentro de los 30 días hábiles posteriores a tu compra.\"\n    }\n  ],\n  \"generated_at\": \"2026-06-24T21:00:00.000Z\",\n  \"correlationId\": \"mock-corr-id-123\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "07 - FAQ por categoría: envíos",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Api-Key", "value": "{{api_key}}" },
+          { "key": "X-Request-Id", "value": "550e8400-e29b-41d4-a716-446655440006" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/chat/faq/faq_envios",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "faq", "faq_envios"]
+        },
+        "description": "GET /chat/faq/faq_envios — FAQs sobre despacho y envíos."
+      },
+      "response": []
+    },
+    {
+      "name": "08 - Error: API Key inválida",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Api-Key", "value": "clave-incorrecta" },
+          { "key": "X-Request-Id", "value": "550e8400-e29b-41d4-a716-446655440007" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"message\": \"Hola\",\n  \"context\": { \"user_id\": null }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/chat/message",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "message"]
+        },
+        "description": "Caso de error: API Key incorrecta.\nEsperado: 401 INVALID_API_KEY."
+      },
+      "response": [
+        {
+          "name": "401 — API Key inválida",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"timestamp\": \"2026-06-24T21:00:00.000Z\",\n  \"status\": 401,\n  \"code\": \"INVALID_API_KEY\",\n  \"message\": \"La API Key proporcionada no es válida.\",\n  \"correlationId\": \"...\"\n}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,10 @@
 export function detectIntent(message) {
   const text = normalize(message);
 
+  if (includesAny(text, ["metodos de pago", "formas de pago", "devolucion", "garantia", "ayuda"])) {
+    return "faq";
+  }
+
   if (includesAny(text, ["pago", "pagado", "aprobado", "rechazado", "payment"])) {
     return "payment_status";
   }
@@ -23,10 +27,6 @@ export function detectIntent(message) {
 
   if (includesAny(text, ["notificacion", "mensaje nuevo", "alerta"])) {
     return "notifications";
-  }
-
-  if (includesAny(text, ["metodos de pago", "formas de pago", "devolucion", "garantia", "ayuda"])) {
-    return "faq";
   }
 
   return "unknown";

@@ -31,9 +31,6 @@ function printStartup(port) {
   const url = `http://localhost:${port}`;
   console.log("chatbot-service iniciado");
   console.log(`Abre el chatbot visual aqui: ${url}`);
-  console.log("Endpoints REST:");
-  console.log(`  POST ${url}/chat/message`);
-  console.log(`  GET  ${url}/chat/session/{session_id}`);
 
   if (shouldOpenBrowser()) {
     openBrowser(url);

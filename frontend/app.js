@@ -20,7 +20,7 @@ const mobileToggle       = document.getElementById("mobile-toggle");
 
 // --- Constantes ---
 const API_KEY   = "mk-chatbot-abc123xyz";
-const sessionId = crypto.randomUUID();
+let sessionId   = crypto.randomUUID();
 
 // --- Estado ---
 let messageCount = 0;
@@ -118,6 +118,7 @@ bindSuggestionCards(messagesWrap);
 
 clearBtn.addEventListener("click", () => {
   messageCount = 0;
+  sessionId = crypto.randomUUID(); // Generar una nueva sesión de chat
   messagesWrap.innerHTML = buildWelcomeScreen();
   bindSuggestionCards(messagesWrap);
   input.focus();
@@ -135,19 +136,19 @@ function buildWelcomeScreen() {
         <div class="suggestions-grid">
           <button class="suggestion-card" data-question="¿Dónde está mi pedido ORD-1001?" type="button">
             <span class="card-icon">📦</span>
-            <div class="card-body"><strong>Rastrear pedido</strong><span>Consulta el estado de tu orden</span></div>
+            <div class="card-body"><strong>Estado de tu orden</strong><span>Pedidos</span></div>
           </button>
           <button class="suggestion-card" data-question="¿Se aprobó el pago de mi pedido ORD-1001?" type="button">
             <span class="card-icon">💳</span>
-            <div class="card-body"><strong>Estado de pago</strong><span>Verifica si el pago fue aprobado</span></div>
+            <div class="card-body"><strong>Verificar pago</strong><span>Pagos</span></div>
           </button>
           <button class="suggestion-card" data-question="¿Hay stock del producto Pescas?" type="button">
             <span class="card-icon">📋</span>
-            <div class="card-body"><strong>Consultar stock</strong><span>Disponibilidad de productos</span></div>
+            <div class="card-body"><strong>Disponibilidad de productos</strong><span>Productos</span></div>
           </button>
           <button class="suggestion-card" data-question="¿Cuánto demora el despacho a regiones?" type="button">
             <span class="card-icon">🚚</span>
-            <div class="card-body"><strong>Tiempos de despacho</strong><span>Plazos y costos de envío</span></div>
+            <div class="card-body"><strong>Tiempos de despacho</strong><span>Envíos</span></div>
           </button>
         </div>
       </div>
@@ -248,6 +249,53 @@ function appendMessage(role, text, meta = null, isLoading = false) {
   }
 
   content.appendChild(msgText);
+
+  if (role === "assistant" && !isLoading) {
+    const actions = document.createElement("div");
+    actions.className = "msg-actions";
+    actions.innerHTML = `
+      <button class="action-icon-btn" title="Copiar respuesta" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </button>
+      <button class="action-icon-btn" title="Me gusta" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+        </svg>
+      </button>
+      <button class="action-icon-btn" title="No me gusta" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path>
+        </svg>
+      </button>
+      <button class="action-icon-btn" title="Compartir" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+          <polyline points="16 6 12 2 8 6"></polyline>
+          <line x1="12" y1="2" x2="12" y2="15"></line>
+        </svg>
+      </button>
+      <button class="action-icon-btn" title="Regenerar respuesta" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+      </button>
+    `;
+    
+    const copyBtn = actions.querySelector('[title="Copiar respuesta"]');
+    if (copyBtn) {
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(text).then(() => {
+          copyBtn.style.color = "#34d399";
+          setTimeout(() => { copyBtn.style.color = ""; }, 1500);
+        });
+      });
+    }
+    
+    content.appendChild(actions);
+  }
 
   if (meta) {
     const metaEl = document.createElement("div");
