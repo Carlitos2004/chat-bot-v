@@ -106,7 +106,7 @@ function buildFallbackResponse({
       }
       return context.inventory.available
         ? `Si, ${context.product.name} esta disponible. Quedan ${context.inventory.quantity} unidades.`
-        : `Por ahora ${context.product.name} no tiene stock disponible.`;
+        : `Por ahora ${context.product.name} no tiene stock disponible`;
 
     case "notifications":
       if (!context.notifications.length) {
