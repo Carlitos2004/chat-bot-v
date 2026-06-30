@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 
-// Esto reemplaza tus 30 líneas de lectura manual de archivos
 dotenv.config();
 
 function boolEnv(name: string, fallback: boolean): boolean {
@@ -13,7 +12,7 @@ export const config = {
   port: Number(process.env.PORT ?? 3010), // Recuerda que tu puerto oficial es 3010
   gemini: {
     apiKey: process.env.GEMINI_API_KEY ?? "",
-    model: process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite", // Te actualicé al modelo más reciente
+    model: process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite",
     enabled: boolEnv("GEMINI_ENABLED", true),
   },
   mockMode: boolEnv("MOCK_MODE", true),

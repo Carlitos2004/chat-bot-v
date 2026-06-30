@@ -7,3 +7,4 @@ pnpm-debug.log*
 yarn-debug.log*
 coverage/
 dist/
+.vscode/
