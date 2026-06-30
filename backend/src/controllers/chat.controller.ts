@@ -110,7 +110,7 @@ function buildFallbackResponse({
 
     case "notifications":
       if (!context.notifications.length) {
-        return "No tienes notificaciones pendientes.";
+        return "No tienes notificaciones pendientes";
       }
       return `Tienes ${context.notifications.length} notificacion(es): ${context.notifications
         .map((item: any) => item.title)
