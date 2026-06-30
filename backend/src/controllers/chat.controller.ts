@@ -5,6 +5,7 @@ import { callGemini } from "../services/gemini.service.js";
 import { getAdapters } from "../services/upstreamMocks.service.js";
 import { appendMessage } from "../services/sessionStore.service.js";
 import { detectIntent, extractEntities } from "../services/intent.service.js";
+import { getFaq } from "../services/faq.service.js";
 
 const PERSONAL_INTENTS = new Set([
   "order_status",
@@ -26,7 +27,7 @@ function buildGeminiPrompt({
 }): string {
   return [
     "Eres el chatbot de soporte del ecosistema Mini Marketplace Cloud.",
-    "Responde en espanol claro, breve y util.",
+    "Responde en español claro, breve y util.",
     "No inventes datos. Usa solo el JSON de contexto.",
     "Si falta informacion, dilo de forma amable.",
     "",
@@ -115,8 +116,11 @@ function buildFallbackResponse({
         .map((item: any) => item.title)
         .join("; ")}.`;
 
-    case "faq":
-      return "Aceptamos tarjetas de credito, debito y transferencia bancaria. Para pedidos personales debes iniciar sesion.";
+    case "faq_envios":
+    case "faq_pagos":
+    case "faq_cuenta":
+    case "faq_productos":
+      return "Puedes encontrar más información sobre este tema en nuestra sección de Preguntas Frecuentes.";
 
     case "unknown":
     default:
@@ -228,10 +232,21 @@ async function collectContext({
       };
     }
 
-    case "faq":
+    case "faq_envios":
+    case "faq_pagos":
+    case "faq_cuenta":
+    case "faq_productos": {
+      // ¡Aquí el chat va a Supabase a buscar la respuesta real!
+      const faqData = await getFaq({ category: intent, correlationId });
+      return { 
+        sources: ["Base de Datos (FAQs)"], 
+        faqs: faqData.items 
+      };
+    }
+
     case "unknown":
     default:
-      return { sources: [], faq: true };
+      return { sources: [] };
   }
 }
 
@@ -456,4 +471,3 @@ export async function sendMessage(req: Request, res: Response) {
     });
   }
 }
-
