@@ -1,4 +1,4 @@
-import { config } from "../config/config.js";
+import { config } from "../config/config.js"; 
 
 export async function callGemini(prompt: string): Promise<string> {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
@@ -14,7 +14,7 @@ export async function callGemini(prompt: string): Promise<string> {
       systemInstruction: {
         parts: [
           {
-            text: "Eres un asistente de soporte del Mini Marketplace Cloud. Responde solo en espanol.",
+            text: "Eres un asistente de soporte del Mini Marketplace Cloud. Responde solo en español.",
           },
         ],
       },
@@ -25,8 +25,8 @@ export async function callGemini(prompt: string): Promise<string> {
         },
       ],
       generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 350,
+        temperature: 0.4,
+        maxOutputTokens: 500,
       },
     }),
   });

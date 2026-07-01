@@ -7,3 +7,6 @@ pnpm-debug.log*
 yarn-debug.log*
 coverage/
 dist/
+.vscode/
+/package.json
+/package-lock.json

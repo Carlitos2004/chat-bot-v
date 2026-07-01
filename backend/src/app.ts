@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from "express";
 import path from "node:path";
-import healthRouter from "./routers/health.router.js";
-import chatRouter from "./routers/chat.router.js";
-import sessionRouter from "./routers/session.router.js";
-import faqRouter from "./routers/faq.router.js";
+import healthRouter from "./routes/health.routes.js";
+import chatRouter from "./routes/chat.routes.js";
+import sessionRouter from "./routes/session.routes.js";
+import faqRouter from "./routes/faq.routes.js";
 
 import { fileURLToPath } from "node:url";
 
