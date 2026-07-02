@@ -29,13 +29,19 @@ El backend es un proyecto **TypeScript**, por lo que el Build Command corre `tsc
 
 En **Render Dashboard → chat-bot-v → Settings → Environment**, configura las siguientes variables (obtén los valores desde tu proyecto de Supabase y Google AI Studio):
 
-| Key | Value | Descripción |
-|---|---|---|
-| `GEMINI_API_KEY` | Tu API Key de Google AI Studio | Autenticación con el modelo Gemini |
-| `MOCK_MODE` | `false` | Desactiva las respuestas simuladas; usa los servicios reales |
-| `ORDER_SERVICE_URL` | URL del servicio de pedidos (G5) | Endpoint consultado para `order_status` / `shipment_status` |
-| `SUPABASE_URL` | Tu Project URL de Supabase | Conexión a la base de datos de sesiones/mensajes |
-| `SUPABASE_ANON_KEY` | Tu Publishable/Anon Key de Supabase | Autenticación con Supabase |
+| Variable | Valor | Descripción |
+| :--- | :--- | :--- |
+| `PORT` | `3010` | Puerto en el que corre el microservicio localmente. |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite` | Modelo de lenguaje natural utilizado por el chatbot. |
+| `MOCK_MODE` | `false` | Modulo de pruebas apagado. El sistema consume servicios reales en producción. |
+| `SUPABASE_URL` | `https://oegyyqennmidvzimnzbe.supabase.co` | URL del proyecto en Supabase para persistencia de datos. |
+| `AUTH_SERVICE_URL` | `https://auth-minimarket-cloud.onrender.com` | Microservicio de Autenticación (Grupo 2). |
+| `CATALOG_SERVICE_URL` | `https://catalog-api-cm1l.onrender.com/api/v1/products` | Microservicio de Catálogo de Productos (Grupo 4). |
+| `ORDER_SERVICE_URL` | `https://pedidos-g5.onrender.com/` | Microservicio de Gestión de Pedidos (Grupo 5). |
+| `PAYMENT_SERVICE_URL` | `https://payment-service-g6.onrender.com/api/payments` | Microservicio de Pasarela de Pagos (Grupo 6). |
+| `INVENTORY_SERVICE_URL` | `https://inventario-g7.onrender.com` | Microservicio de Control de Inventario y Stock (Grupo 7). |
+| `SHIPPING_SERVICE_URL` | `https://arq-microservicio-de-despacho-y-logistica.onrender.com` | Microservicio de Despacho y Logística (Grupo 8). |
+| `NOTIFICATION_SERVICE_URL` | `https://notification-service-i3bn.onrender.com` | Microservicio de Notificaciones (Grupo 9). |
 
 **IMPORTANTE:** nunca compartir estos valores ni subirlos a GitHub. El archivo `.env` está incluido en `.gitignore`; usa `.env.example` como referencia de los nombres de variables sin exponer valores reales.
 
@@ -45,13 +51,13 @@ El proyecto opera actualmente como **Mock Funcional Inteligente**: mientras cada
 
 | Key | Grupo | Estado |
 |---|---|---|
-| `AUTH_SERVICE_URL` | G2 | Pendiente de URL final |
-| `CATALOG_SERVICE_URL` | G3 | Pendiente de URL final |
+| `AUTH_SERVICE_URL` | G2 | ✅ Configurada en Render |
+| `CATALOG_SERVICE_URL` | G3 | ✅ Configurada en Render |
 | `ORDER_SERVICE_URL` | G5 | ✅ Configurada en Render |
-| `PAYMENT_SERVICE_URL` | G6 | Pendiente de URL final |
-| `INVENTORY_SERVICE_URL` | G7 | Pendiente de URL final |
-| `SHIPPING_SERVICE_URL` | G8 | Pendiente de URL final |
-| `NOTIFICATION_SERVICE_URL` | G9 | Pendiente de URL final |
+| `PAYMENT_SERVICE_URL` | G6 | ✅ Configurada en Render |
+| `INVENTORY_SERVICE_URL` | G7 | ✅ Configurada en Render |
+| `SHIPPING_SERVICE_URL` | G8 | ✅ Configurada en Render |
+| `NOTIFICATION_SERVICE_URL` | G9 | ✅ Configurada en Render |
 | `REPORTING_SERVICE_URL` | — | Pendiente de URL final |
 
 > **Nota sobre `X-Api-Key`:** la validación está implementada en `src/middlewares/auth.middleware.ts`, pero el nombre de la variable de entorno que lee para comparar la key aún no está confirmado ni configurada en Render. Pendiente de revisión en el código antes de documentarla y agregarla al dashboard.
