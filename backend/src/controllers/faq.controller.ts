@@ -7,7 +7,6 @@ const VALID_FAQ_CATEGORIES = [
   "faq_pagos",
   "faq_productos",
   "faq_cuenta",
-  "faq_devoluciones",
 ];
 
 export async function getFaqList(req: Request, res: Response) {

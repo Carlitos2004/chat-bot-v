@@ -4,8 +4,54 @@ import { supabase } from "../config/supabase.js";
 
 const sessions: Record<string, Session> = {};
 
-export function getSession(sessionId: string): Session | null {
-  return sessions[sessionId] || null;
+export async function getSession(sessionId: string): Promise<Session | null> {
+  // 1. Buscar en memoria primero (caché rápido)
+  if (sessions[sessionId]) {
+    return sessions[sessionId];
+  }
+
+  // 2. Si no está en memoria, buscamos en Supabase
+  try {
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('session')
+      .select('sessionId, userId')
+      .eq('sessionId', sessionId)
+      .single();
+
+    if (sessionError || !sessionData) {
+      return null;
+    }
+
+    const { data: messagesData, error: messagesError } = await supabase
+      .from('messages')
+      .select('role, content, intent_detected, timestamp')
+      .eq('sessionId', sessionId)
+      .order('timestamp', { ascending: true });
+
+    if (messagesError) {
+      console.error("⚠️ Error al obtener mensajes de Supabase:", messagesError.message);
+      return null;
+    }
+
+    const session: Session = {
+      session_id: sessionData.sessionId,
+      user_id: sessionData.userId || null,
+      status: "active",
+      messages: (messagesData || []).map((m: any) => ({
+        role: m.role as MessageRole,
+        content: m.content,
+        intent_detected: m.intent_detected,
+        timestamp: m.timestamp,
+      })),
+    };
+
+    // Guardar en memoria para futuras consultas rápidas
+    sessions[sessionId] = session;
+    return session;
+  } catch (error) {
+    console.error("❌ Fallo al conectar con Supabase en getSession:", error);
+    return null;
+  }
 }
 
 // ⚠️ Le agregamos 'async' porque conectarse a la BDD toma tiempo

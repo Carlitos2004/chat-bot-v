@@ -126,18 +126,26 @@ curl -X POST https://chat-bot-v-xzvi.onrender.com/chat/message \
   }'
 ```
 
----
-
 ## Endpoints principales
 
-| Método | Endpoint (implementado) | Descripción | Auth |
-|---|---|---|---|
-| `POST` | `/chat` | Envía un mensaje al chatbot y recibe respuesta conversacional | `X-Api-Key` siempre; JWT para intents personalizados |
-| `GET` | `/chat/sessions/{sessionId}` | Obtiene historial de una sesión persistida en Supabase | `X-Api-Key` + JWT |
-| `GET` | `/chat/faq/{category}` | Preguntas frecuentes por categoría (`faq_envios`, `faq_pagos`, `faq_cuenta`, `faq_productos`) | `X-Api-Key`; JWT opcional |
-| `GET` | `/health` | Estado del servicio y sus dependencias | Sin autenticación |
+| Método | Endpoint Oficial (Contrato OpenAPI) | Alias de Compatibilidad | Descripción | Auth |
+|---|---|---|---|---|
+| `POST` | `/chat/message` | `/chat` | Envía un mensaje al chatbot y recibe respuesta conversacional | `X-Api-Key` siempre; JWT para intents personalizados |
+| `GET` | `/chat/session/{session_id}` | `/chat/sessions/{sessionId}` | Obtiene el historial de una sesión persistido en la base de datos (Supabase) | `X-Api-Key` + JWT |
+| `GET` | `/chat/faq/{category}` | — | Preguntas frecuentes por categoría (`faq_envios`, `faq_pagos`, `faq_cuenta`, `faq_productos`) | `X-Api-Key`; JWT opcional |
+| `GET` | `/health` | — | Estado de salud del servicio (incluyendo estado de Supabase y Gemini) | Sin autenticación |
 
-> ⚠️ **Discrepancia detectada:** el contrato OpenAPI (`contrato-chatbot-service-REST-v1_1.yaml`) documenta las rutas como `POST /chat/message` y `GET /chat/session/{session_id}` (singular), mientras que el código implementado usa `POST /chat` y `GET /chat/sessions/{sessionId}` (plural). La tabla de arriba refleja las rutas **reales del código**. Antes de la entrega, hay que decidir cuál es la fuente de verdad y actualizar el contrato o el código para que coincidan.
+> ✅ **Alineación con el Contrato:** Las rutas oficiales coinciden al 100% con el contrato OpenAPI (`contrato-chatbot-service-REST-v1_2.yaml`). Los alias de compatibilidad se mantienen activos para evitar romper el frontend visual actual.
+
+---
+
+## Flujo de CI/CD (Integración y Despliegue Continuo)
+
+1. **Integración Continua (GitHub Actions):** Cada push o Pull Request a la rama `main` activa el workflow `.github/workflows/ci.yml`. Este pipeline ejecuta las siguientes tareas:
+   - Configura Node.js v20.
+   - Instala las dependencias del proyecto (`npm ci`).
+   - Compila TypeScript (`npm run build`) para verificar que no haya errores de sintaxis o tipo.
+2. **Despliegue Continuo (Render):** Render detecta el commit en `main` y realiza el auto-deploy (compilando y levantando la nueva versión automáticamente).
 
 ---
 

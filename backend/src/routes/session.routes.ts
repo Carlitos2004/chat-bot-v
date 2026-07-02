@@ -7,19 +7,15 @@
  */
 
 import { Router } from "express";
-import { sendMessage } from "../controllers/chat.controller.js";
+import { getSessionHistory } from "../controllers/session.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-/**
- * ENDPOINT: POST /chat
- * * - Tipo: Privado (Exige el header X-Api-Key a nivel de aplicación).
- * - Función: Recibe la pregunta del usuario, detecta la intención, consulta 
- * los datos de microservicios externos y responde.
- * - Parámetros requeridos en Body: session_id (UUID), message (string).
- * - Controlador: sendMessage en chat.controller.ts
- */
-router.post("/", authMiddleware, sendMessage);
+// GET /chat/session/{session_id} - Obtener historial de chat (Contrato OpenAPI)
+router.get("/chat/session/:session_id", authMiddleware, getSessionHistory);
+
+// GET /chat/sessions/{sessionId} - Alias por compatibilidad
+router.get("/chat/sessions/:sessionId", authMiddleware, getSessionHistory);
 
 export default router;
