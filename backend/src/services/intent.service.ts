@@ -44,18 +44,40 @@ export function extractEntities(message: string): {
   orderId: string;
   productQuery: string;
 } {
-  const orderMatch = message.match(/\b(?:ORD[-\s]?)?\d+\b/i);
   const productMatch = message.match(
     /(?:producto|stock|disponible|precio|catalogo)\s+(?:de\s+|del\s+|para\s+)?(.+)/i
   );
 
   return {
-    orderId: normalizeOrderId(orderMatch?.[0] ?? "ORD-1001"),
+    orderId: extractOrderId(message),
     productQuery: cleanProductQuery(productMatch?.[1] ?? message),
   };
 }
 
-// --- Funciones de utilidad originales ---
+/**
+ * Extrae el ID de una orden desde el mensaje del usuario.
+ * Prioriza UUIDs (formato real usado por G5), y como fallback
+ * soporta el formato antiguo tipo "ORD-1001".
+ * Si no encuentra nada válido, retorna "" (string vacío) en vez
+ * de inventar un ID por defecto — así el flujo puede pedirle
+ * al usuario que aclare su número de orden.
+ */
+function extractOrderId(message: string): string {
+  // 1. UUID completo (ej: 4f09f3b5-c4b3-4348-a677-7c9ad5c4fcdb)
+  const uuidMatch = message.match(
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i
+  );
+  if (uuidMatch) return uuidMatch[0];
+
+  // 2. Formato antiguo tipo "ORD-1001" (compatibilidad hacia atrás)
+  const ordMatch = message.match(/\bORD[-\s]?\d+\b/i);
+  if (ordMatch) return ordMatch[0].toUpperCase().replace(/\s/, "-");
+
+  // 3. Fallback: orden de demostración por defecto
+  return "ORD-1001";
+}
+
+// --- Funciones de utilidad originales (sin cambios) ---
 
 function normalize(value: string): string {
   return value
@@ -66,11 +88,6 @@ function normalize(value: string): string {
 
 function includesAny(value: string, candidates: string[]): boolean {
   return candidates.some((candidate) => value.includes(candidate));
-}
-
-function normalizeOrderId(value: string): string {
-  const digits = value.match(/\d+/)?.[0] ?? "1001";
-  return `ORD-${digits}`;
 }
 
 function cleanProductQuery(value: string): string {
