@@ -348,7 +348,7 @@ export async function sendMessage(req: Request, res: Response) {
   const intent = detectIntent(message);
   const entities = extractEntities(message);
 
-  appendMessage(sessionId, {
+  await appendMessage(sessionId, {
     role: "user",
     content: message,
     intent_detected: null,
@@ -360,7 +360,7 @@ export async function sendMessage(req: Request, res: Response) {
     const errorResponseText =
       "Para consultar informacion personal necesitas iniciar sesion.";
 
-    appendMessage(sessionId, {
+    await appendMessage(sessionId, {
       role: "assistant",
       content: errorResponseText,
       intent_detected: intent,
@@ -402,7 +402,7 @@ export async function sendMessage(req: Request, res: Response) {
     }
     const timestamp = new Date().toISOString();
 
-    appendMessage(sessionId, {
+    await appendMessage(sessionId, {
       role: "assistant",
       content: responseText,
       intent_detected: intent,
@@ -443,7 +443,7 @@ export async function sendMessage(req: Request, res: Response) {
     const response = geminiText || fallback;
     const timestamp = new Date().toISOString();
 
-    appendMessage(sessionId, {
+    await appendMessage(sessionId, {
       role: "assistant",
       content: response,
       intent_detected: intent,
