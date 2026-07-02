@@ -113,37 +113,39 @@
                 <span class="gradient-text">Hola,</span><br>
                 <span class="welcome-sub">¿en qué puedo ayudarte?</span>
               </h1>
-              <p class="welcome-desc">Soy el asistente conversacional del ecosistema Mini Marketplace Cloud. Puedo ayudarte con pedidos, pagos, stock e información de envíos.</p>
+              <p class="welcome-desc">Soy un asistente comercial de ecosistema minimarket cloud, puedo ayudarte en el pedido, pago, stock, información de envíos.</p>
 
-              <div class="suggestions-grid">
-                <button class="suggestion-card" data-question="¿Dónde está mi pedido ORD-1001?" type="button">
-                  <span class="card-icon">📦</span>
-                  <div class="card-body">
-                    <strong>Estado de tu orden</strong>
-                    <span>Pedidos</span>
+              <div class="faq-section">
+                <h3 class="faq-section-title">Preguntas frecuentes por categoría</h3>
+                <div class="faq-categories-grid">
+                  <button class="faq-category-card" data-category="faq_cuenta" type="button">
+                    <span class="category-icon">👤</span>
+                    <span class="category-name">Cuenta</span>
+                  </button>
+                  <button class="faq-category-card" data-category="faq_envios" type="button">
+                    <span class="category-icon">🚚</span>
+                    <span class="category-name">Envíos</span>
+                  </button>
+                  <button class="faq-category-card" data-category="faq_pagos" type="button">
+                    <span class="category-icon">💳</span>
+                    <span class="category-name">Pagos</span>
+                  </button>
+                  <button class="faq-category-card" data-category="faq_productos" type="button">
+                    <span class="category-icon">📦</span>
+                    <span class="category-name">Productos</span>
+                  </button>
+                </div>
+
+                <!-- Drawer/Apartadito para mostrar preguntas frecuentes dinámicamente -->
+                <div class="faq-drawer-container" id="faq-drawer">
+                  <div class="faq-drawer-header">
+                    <h4 id="faq-drawer-title">Preguntas frecuentes</h4>
+                    <button class="faq-drawer-close" id="close-faq-drawer" type="button" aria-label="Cerrar panel">✕</button>
                   </div>
-                </button>
-                <button class="suggestion-card" data-question="¿Se aprobó el pago de mi pedido ORD-1001?" type="button">
-                  <span class="card-icon">💳</span>
-                  <div class="card-body">
-                    <strong>Verificar pago</strong>
-                    <span>Pagos</span>
+                  <div class="faq-drawer-content" id="faq-drawer-content">
+                    <p class="faq-placeholder">Selecciona una categoría de arriba para ver las preguntas frecuentes asociadas.</p>
                   </div>
-                </button>
-                <button class="suggestion-card" data-question="¿Hay stock del producto Pescas?" type="button">
-                  <span class="card-icon">📋</span>
-                  <div class="card-body">
-                    <strong>Disponibilidad de productos</strong>
-                    <span>Productos</span>
-                  </div>
-                </button>
-                <button class="suggestion-card" data-question="¿Cuánto demora el despacho a regiones?" type="button">
-                  <span class="card-icon">🚚</span>
-                  <div class="card-body">
-                    <strong>Tiempos de despacho</strong>
-                    <span>Envíos</span>
-                  </div>
-                </button>
+                </div>
               </div>
             </div>
           </div>

@@ -8,7 +8,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:3010",
+      "value": "http://localhost:3000",
       "description": "URL base del chatbot-service. Cambiar a la URL de Render cuando esté desplegado."
     },
     {

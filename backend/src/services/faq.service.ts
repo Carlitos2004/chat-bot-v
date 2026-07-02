@@ -72,10 +72,9 @@ export async function getFaq({
   correlationId: string;
 }) {
   const timestamp = new Date().toISOString();
-  const defaultItems = FAQ_FALLBACKS[category] || [];
 
   // ==========================================
-  // NIVEL 1: BASE DE DATOS (SUPABASE)
+  // NIVEL ÚNICO: BASE DE DATOS (SUPABASE)
   // ==========================================
   try {
     const { data: dbItems, error: dbError } = await supabase
@@ -85,78 +84,30 @@ export async function getFaq({
 
     if (dbError) {
       console.warn(`[Supabase] Error al consultar FAQs para '${category}':`, dbError.message);
-    } else if (dbItems && dbItems.length > 0) {
-      console.log(`[FAQs] Datos cargados EXITOSAMENTE desde Supabase para la categoría: ${category}`);
       return {
         category,
-        items: dbItems,
+        items: [],
         generated_at: timestamp,
         correlationId,
+        error: dbError.message
       };
     }
-  } catch (err: any) {
-    console.warn(`[Supabase] Fallo crítico en la conexión al buscar FAQs:`, err.message);
-  }
 
-  // ==========================================
-  // NIVEL 2: INTELIGENCIA ARTIFICIAL (GEMINI)
-  // ==========================================
-  if (!config.gemini.enabled || !config.gemini.apiKey) {
+    console.log(`[FAQs] Datos cargados desde Supabase para la categoría: ${category} (Total: ${dbItems?.length ?? 0})`);
     return {
       category,
-      items: defaultItems,
+      items: dbItems || [],
       generated_at: timestamp,
       correlationId,
     };
+  } catch (err: any) {
+    console.warn(`[Supabase] Fallo crítico en la conexión al buscar FAQs:`, err.message);
+    return {
+      category,
+      items: [],
+      generated_at: timestamp,
+      correlationId,
+      error: err.message
+    };
   }
-
-  const prompt = `Genera un array JSON con 3 preguntas frecuentes realistas y sus respuestas sobre el tema "${category}" en el contexto de un Mini Marketplace Cloud.
-Las categorías permitidas según el contrato de la API son estrictamente:
-- faq_envios: tiempos de despacho, zonas de cobertura, seguimiento de envíos, costos.
-- faq_pagos: métodos de pago aceptados, reembolsos, facturación, cuotas.
-- faq_cuenta: registro, recuperación de contraseña, datos personales, cierre.
-- faq_productos: catálogo general, devoluciones, garantías, categorías.
-
-Responde ÚNICAMENTE con el bloque de código JSON, sin explicaciones ni markdown extra. El formato debe ser un array de objetos con las propiedades "question" y "answer":
-[
-  { "question": "¿...", "answer": "..." },
-  ...
-]`;
-
-  try {
-    const rawResponse = await callGemini(prompt);
-    const cleaned = rawResponse.replace(/```json|```/g, "").trim();
-    const items = JSON.parse(cleaned);
-
-    if (
-      Array.isArray(items) &&
-      items.length > 0 &&
-      items[0].question &&
-      items[0].answer
-    ) {
-      console.log(`[FAQs] Datos generados por Gemini para la categoría: ${category}`);
-      return {
-        category,
-        items,
-        generated_at: timestamp,
-        correlationId,
-      };
-    }
-  } catch (error: any) {
-    console.warn(
-      `Error al obtener FAQ con Gemini para '${category}', usando fallback:`,
-      error.message
-    );
-  }
-
-  // ==========================================
-  // NIVEL 3: FALLBACK LOCAL (ÚLTIMO RECURSO)
-  // ==========================================
-  console.log(`[FAQs] Usando datos locales (fallback) para la categoría: ${category}`);
-  return {
-    category,
-    items: defaultItems,
-    generated_at: timestamp,
-    correlationId,
-  };
 }
