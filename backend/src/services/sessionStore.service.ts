@@ -38,28 +38,29 @@ export async function appendMessage(
   try {
     // A) Primero verificamos si la sesión ya existe en la base de datos
     const { data: existingSession } = await supabase
-      .from('sessions')
-      .select('id')
-      .eq('id', sessionId)
+      .from('session')
+      .select('sessionId')
+      .eq('sessionId', sessionId)
       .single();
 
-    // B) Si no existe, la creamos en la tabla 'sessions'
+    // B) Si no existe la sesión, la creamos usando 'userId'
     if (!existingSession) {
       const { error: sessionError } = await supabase
-        .from('sessions')
-        .insert([{ id: sessionId, user_id: user_id || null }]);
+        .from('session')
+        .insert([{ sessionId: sessionId, userId: user_id || null }]); // <-- Cambiado a userId
       
       if (sessionError) console.error("⚠️ Error al crear sesión en Supabase:", sessionError.message);
     }
 
-    // C) Insertamos el mensaje en la tabla 'messages'
+    // C) Insertamos el mensaje usando 'sessionId'
     const { error: messageError } = await supabase
       .from('messages')
       .insert([{
-        session_id: sessionId,
+        sessionId: sessionId,       // <-- Cambiado a sessionId
         role: role,
         content: content,
-        intent_detected: intent_detected || null
+        intent_detected: intent_detected || null,
+        timestamp: timestamp || new Date().toISOString()
       }]);
 
     if (messageError) {
