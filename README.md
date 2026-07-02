@@ -1,102 +1,129 @@
-# Grupo 11 - Chatbot Service
+# 🤖 Grupo 11 - Chatbot Service
 
-Este microservicio actúa como la capa de atención, orquestación e integración conversacional del ecosistema Mini Marketplace Cloud. Su responsabilidad principal es interactuar con los clientes utilizando lenguaje natural (IA) para resolver consultas de catálogo, stock, estados de órdenes, pagos, envíos y FAQs generales, conectando flujos complejos mediante llamadas backend-to-backend a los microservicios de los otros grupos (G2-G9).
+Este microservicio actúa como la capa de **atención, orquestación e
+integración conversacional** del ecosistema *Mini Marketplace Cloud*.
+
+Su responsabilidad principal es interactuar con los clientes utilizando
+lenguaje natural (IA) para resolver consultas sobre catálogo, stock,
+estados de órdenes, pagos, envíos y FAQs generales, conectando flujos
+complejos mediante llamadas backend-to-backend a los microservicios de
+los otros grupos (G2-G9) y persistiendo el historial de conversaciones.
 
 ---
 
-## 📄 Contrato API y Evidencia de Evolución Documentada
+## 📄 Contrato API y Evolución Documentada
 
-El diseño y especificación de la API se gestiona mediante un contrato estricto bajo el estándar OpenAPI 3.0.3.
+El diseño y especificación de la API se gestiona mediante un contrato
+estricto bajo el estándar **OpenAPI 3.0.3**.
 
-* **Enlace al Contrato YAML:** [contrato-chatbot-service-REST-v1_2.yaml](file:///c:/Users/carlo/OneDrive/Desktop/chat-bot-v-main/docs/contrato-chatbot-service-REST-v1_2.yaml) (Puedes importar este archivo directamente en [Swagger Editor](https://editor.swagger.io/) para visualizarlo como Swagger UI).
+> [!NOTE]
+> **Enlace al Contrato YAML**
+> El archivo contractual completo se encuentra en:
+> [contrato-chatbot-service-REST-v1_2.yaml](./docs/contrato-chatbot-service-REST-v1_2.yaml)
+> *(Puedes importar este archivo en [Swagger Editor](https://editor.swagger.io/)
+> para visualizarlo en Swagger UI)*.
 
-### Historial de Versiones (Evolución Documentada)
-Para evidenciar la maduración y evolución del diseño del servicio, el contrato ha pasado por las siguientes fases documentadas:
-* **v1.0 (Diseño Inicial - Fase Contractual):** Definición conceptual de los endpoints de mensajería básica e integración conceptual de respuestas estáticas (Mocks locales).
-* **v1.1 (Fase de Integración Temprana):** Incorporación de seguridad obligatoria por headers (`X-Api-Key`), headers de trazabilidad (`X-Correlation-Id`, `X-Request-Id`), y estandarización del formato de respuesta de errores (404/500).
-* **v1.2 (Fase Cloud - Versión Actual):** Incorporación de persistencia real en la nube con Supabase (PostgreSQL), corrección de consistencia de rutas según el contrato (`/chat/message` y `/chat/session/{session_id}` en singular), e integración del monitoreo de base de datos activa dentro de `/health`.
+### ⏳ Historial de Versiones (Evolución del Servicio)
+
+Para evidenciar la maduración y evolución del diseño del servicio, el
+contrato ha pasado por tres fases clave de desarrollo:
+
+* **📝 v1.0 (Diseño Inicial - Fase Contractual):**
+  * Definición conceptual de los endpoints de mensajería básica.
+  * Respuestas estáticas simuladas (Mocks locales).
+* **🔒 v1.1 (Fase de Integración Temprana):**
+  * Seguridad obligatoria por headers (`X-Api-Key`).
+  * Cabeceras de trazabilidad de solicitudes (`X-Correlation-Id`, `X-Request-Id`).
+  * Estandarización de respuestas de error (`404` y `500`).
+* **☁️ v1.2 (Fase Cloud - Versión Actual):**
+  * Integración con persistencia real en la nube usando **Supabase (PostgreSQL)**.
+  * Consistencia de rutas según diseño contractual (`/chat/message` y
+    `/chat/session/{session_id}`).
+  * Monitoreo de la base de datos activa dentro del endpoint `/health`.
 
 ---
 
 ## 🛠️ Stack Tecnológico
-* **Backend:** Node.js (versión 20+), TypeScript, Express.
-* **Seguridad:** Middleware de autenticación por API Key y paso de JWT Bearer Token.
-* **Base de Datos (Persistencia):** Supabase (PostgreSQL).
-* **IA Motor:** Google Gemini API (`Gemini 3.1 Flash Lite`).
-* **CI/CD:** GitHub Actions (Integración) + Render.com (Despliegue Continuo).
+
+El servicio se encuentra construido sobre el siguiente stack de software:
+
+* **Frontend (Interfaz Gráfica):** HTML5, CSS3 (Vanilla para diseño responsivo
+  y moderno), JavaScript (Cliente para interactuar de forma asíncrona con el bot).
+* **Backend (API):** Node.js (v20+), TypeScript, Express.js.
+* **Persistencia (Base de Datos):** Supabase (Base de datos PostgreSQL en la nube).
+* **Motor de IA:** Google Gemini API (`Gemini 3.1 Flash Lite`).
+* **Seguridad:** Validación de API Key y paso de token JWT Bearer.
+* **Integración/Despliegue Continuo (CI/CD):** GitHub Actions + Render.com.
 
 ---
 
-## 🚀 Cómo Instalar
+## 🚀 Guía de Instalación Local
 
-1. **Clonar el repositorio:**
-   ```bash
-   git clone https://github.com/Carlitos2004/chat-bot-v.git
-   cd chat-bot-v
-   ```
-2. **Instalar las dependencias de Node.js:**
-   Ingresa a la carpeta del backend e instala las librerías requeridas:
-   ```bash
-   cd backend
-   npm install
-   ```
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/Carlitos2004/chat-bot-v.git
+cd chat-bot-v
+```
 
----
-
-## 🔑 Variables de Entorno Requeridas
-
-Crea un archivo `.env` en la raíz de la carpeta `backend` (puedes guiarte con [.env.example](file:///c:/Users/carlo/OneDrive/Desktop/chat-bot-v-main/.env.example)). Configura las siguientes variables:
-
-| Variable | Tipo / Valor sugerido | Descripción |
-|---|---|---|
-| `PORT` | `3010` | Puerto en el que corre el servidor Express localmente. |
-| `OPEN_BROWSER` | `true` o `false` | Indica si abre automáticamente el chatbot en el navegador al iniciar. |
-| `CHATBOT_API_KEY` | `mk-chatbot-abc123xyz` | Clave secreta que se compara en el header `X-Api-Key`. |
-| `GEMINI_API_KEY` | Tu API Key de Google AI Studio | Clave para realizar peticiones al modelo conversacional de Gemini. |
-| `GEMINI_MODEL` | `gemini-3.1-flash-lite` | Modelo de IA conversacional utilizado. |
-| `GEMINI_ENABLED` | `true` | Habilita o deshabilita las llamadas a la API de Gemini. |
-| `SUPABASE_URL` | URL de tu proyecto Supabase | Endpoint REST de tu base de datos Supabase. |
-| `SUPABASE_ANON_KEY` | Anon Key de Supabase | Clave pública de autenticación para Supabase. |
-| `MOCK_MODE` | `false` o `true` | `false` para conectar a las APIs reales de otros grupos; `true` para usar mocks locales. |
-
-### Variables de URLs de otros grupos (G2 - G9)
-Cuando los demás grupos entreguen sus servicios, completa estas variables en el `.env` (si se dejan vacías y `MOCK_MODE=false`, el chatbot usará simulaciones inteligentes para no fallar):
-* `AUTH_SERVICE_URL` (G2 - Autenticación)
-* `CATALOG_SERVICE_URL` (G3 - Catálogo de productos)
-* `ORDER_SERVICE_URL` (G5 - Pedidos)
-* `PAYMENT_SERVICE_URL` (G6 - Pagos)
-* `INVENTORY_SERVICE_URL` (G7 - Inventario/Stock)
-* `SHIPPING_SERVICE_URL` (G8 - Despachos y Logística)
-* `NOTIFICATION_SERVICE_URL` (G9 - Notificaciones)
-* `REPORTING_SERVICE_URL` (Reportería y analítica)
-
----
-
-## 💻 Cómo Correr Localmente
-
-### 1. Iniciar en Modo Desarrollo (TypeScript watch)
-Este comando compila en tiempo real y detecta cualquier cambio que realices en el código:
+### 2. Instalar dependencias
+Ingresa a la carpeta del backend e instala las librerías necesarias:
 ```bash
 cd backend
+npm install
+```
+
+### 3. Configurar Variables de Entorno
+Crea un archivo `.env` en la raíz de la carpeta `backend` guiándote con
+el archivo [.env.example](./.env.example).
+
+| Variable | Tipo / Valor sugerido | Descripción |
+| :--- | :--- | :--- |
+| `PORT` | `3010` | Puerto local. |
+| `OPEN_BROWSER` | `true` \| `false` | Abre el chatbot al iniciar. |
+| `CHATBOT_API_KEY` | `mk-chatbot-abc123xyz` | Clave para `X-Api-Key`. |
+| `GEMINI_API_KEY` | *(Tu API Key)* | Clave para llamadas a Gemini. |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite` | Modelo de IA. |
+| `GEMINI_ENABLED` | `true` | Habilita llamadas a Gemini. |
+| `SUPABASE_URL` | *(URL de Supabase)* | Endpoint REST. |
+| `SUPABASE_ANON_KEY`| *(Anon Key)* | Clave de acceso a Supabase. |
+| `MOCK_MODE` | `false` | `false` para servicios reales. |
+
+> [!TIP]
+> **Integraciones de Microservicios Configurados:**
+> Las siguientes variables corresponden a las URLs de producción y ya
+> están completamente integradas:
+> * `AUTH_SERVICE_URL` (G2 - Autenticación)
+> * `CATALOG_SERVICE_URL` (G4 - Catálogo)
+> * `ORDER_SERVICE_URL` (G5 - Pedidos)
+> * `PAYMENT_SERVICE_URL` (G6 - Pagos)
+> * `INVENTORY_SERVICE_URL` (G7 - Inventario y Stock)
+> * `SHIPPING_SERVICE_URL` (G8 - Despachos)
+> * `NOTIFICATION_SERVICE_URL` (G9 - Notificaciones)
+> * `REPORTING_SERVICE_URL` (Reportería y Analítica)
+
+---
+
+## 💻 Ejecución del Proyecto
+
+### Iniciar en Desarrollo (Live Reload)
+```bash
 npm run dev
 ```
 
-### 2. Compilar el Proyecto (TypeScript -> JavaScript)
-Genera la carpeta `dist/` con el código JavaScript optimizado:
+### Compilar para Producción
 ```bash
 npm run build
 ```
 
-### 3. Iniciar en Modo Producción (Local)
-Levanta la versión compilada:
+### Iniciar en Producción
 ```bash
 npm start
 ```
 
-### 4. Ejecutar Pruebas de Humo (Smoke Tests)
-Ejecuta una serie de peticiones automatizadas de prueba contra los endpoints del servidor local para validar que todo esté operando correctamente:
+### Pruebas de Humo (Smoke Tests)
+Puedes validar rápidamente el funcionamiento de los endpoints ejecutando:
 ```bash
-# Asegúrate de tener el servidor corriendo localmente en el puerto 3010 antes de ejecutar
+# Asegúrate de tener el servidor corriendo localmente en el puerto 3010
 $env:CHATBOT_BASE_URL="http://localhost:3010"; node ../scripts/smoke-test.mjs
 ```
 
@@ -104,18 +131,21 @@ $env:CHATBOT_BASE_URL="http://localhost:3010"; node ../scripts/smoke-test.mjs
 
 ## 🛣️ Endpoints Disponibles (Alineados al Contrato)
 
-El servicio implementa los endpoints oficiales requeridos por el contrato y mantiene alias de compatibilidad para evitar romper el frontend visual actual:
+El servicio responde exactamente al diseño OpenAPI v1.2 y mantiene alias:
 
-| Método | Endpoint Oficial (Contrato) | Alias de Compatibilidad | Descripción | Seguridad |
-|---|---|---|---|---|
-| `POST` | `/chat/message` | `/chat` | Procesa un mensaje en lenguaje natural usando IA Gemini y devuelve respuesta estructurada. | Requiere `X-Api-Key` en headers. |
-| `GET` | `/chat/session/{session_id}` | `/chat/sessions/{sessionId}` | Obtiene el historial completo de mensajes asociados a una sesión de chat directamente desde **Supabase**. | Requiere `X-Api-Key` en headers. |
-| `GET` | `/chat/faq/{category}` | — | Retorna las preguntas y respuestas frecuentes de una categoría (`faq_envios`, `faq_pagos`, `faq_productos`, `faq_cuenta`). | Requiere `X-Api-Key` en headers. |
-| `GET` | `/health` | — | Devuelve el estado operativo de salud del chatbot, la base de datos de Supabase y las dependencias del ecosistema. | Público (Sin autenticación). |
+| Método | Endpoint Oficial | Alias de Compatibilidad | Descripción |
+| :---: | :--- | :--- | :--- |
+| **POST** | `/chat/message` | `/chat` | Envía mensaje al chatbot. |
+| **GET** | `/chat/session/{session_id}`| `/chat/sessions/{sessionId}`| Historial de la sesión. |
+| **GET** | `/chat/faq/{category}` | — | FAQs por categoría. |
+| **GET** | `/health` | — | Estado del servicio y DB. |
 
 ---
 
-## 🚀 CI/CD Integrado
+## 🔄 Pipeline CI/CD
 
-1. **Integración Continua (GitHub Actions):** Al hacer push o pull request a la rama `main`, la GitHub Action configurada en `.github/workflows/ci.yml` ejecuta automáticamente la instalación y compilación (`npm run build`) para verificar que no existan errores de código.
-2. **Despliegue Continuo (Render.com CD):** Una vez que la compilación de GitHub Actions es exitosa y se aprueban los cambios en `main`, Render.com realiza el auto-deploy y publica la nueva versión de manera automática y sin intervención manual.
+1. **Integración Continua (CI):** Implementada con **GitHub Actions**
+   (`.github/workflows/ci.yml`). Cada push a `main` desencadena la
+   instalación limpia (`npm ci`) y compilación para evitar código roto.
+2. **Despliegue Continuo (CD):** Conectado automáticamente con
+   **Render.com**. Si la compilación es exitosa, se despliega solo.
