@@ -15,15 +15,10 @@ const router = Router();
 
 // Middleware de seguridad obligatorio: Protege todas las peticiones con X-Api-Key
 
-/**
- * ENDPOINT: POST /chat
- * 
- * - Tipo: Privado (Exige el header X-Api-Key).
- * - Función: Recibe la pregunta del usuario, detecta la intención, consulta 
- *            los datos de microservicios externos y responde.
- * - Parámetros requerido en Body: session_id (UUID), message (string).
- * - Controlador: sendMessage en chat.controller.ts
- */
+// POST /chat/message - Enviar mensaje (Contrato OpenAPI)
+router.post("/chat/message", authMiddleware, sendMessage);
+
+// POST /chat - Alias por compatibilidad con el frontend visual
 router.post("/chat", authMiddleware, sendMessage);
 
 export default router;
