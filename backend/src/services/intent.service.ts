@@ -3,7 +3,7 @@ export function detectIntent(message: string): string {
   const hasOrderRef = text.includes("ord-");
 
   // 1. FAQ CUENTA
-  if (includesAny(text, ["registro", "registrar", "contrasena", "clave", "perfil", "datos", "cuenta"])) {
+  if (includesAny(text, ["registro", "contraseña", "clave", "perfil", "datos", "cuenta"])) {
     return "faq_cuenta";
   }
 
@@ -13,7 +13,7 @@ export function detectIntent(message: string): string {
   }
 
   // 3. PAGOS (Transaccional vs FAQ)
-  if (includesAny(text, ["pago", "pagar", "pagado", "tarjeta", "transferencia", "reembolso", "cuota"])) {
+  if (includesAny(text, ["pago", "pagado", "tarjeta", "transferencia", "reembolso", "cuota"])) {
     return hasOrderRef ? "payment_status" : "faq_pagos";
   }
 

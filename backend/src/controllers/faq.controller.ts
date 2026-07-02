@@ -6,7 +6,6 @@ const VALID_FAQ_CATEGORIES = [
   "faq_envios",
   "faq_pagos",
   "faq_productos",
-  "faq_cuenta",
   "faq_devoluciones",
 ];
 

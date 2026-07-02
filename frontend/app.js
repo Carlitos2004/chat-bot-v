@@ -98,128 +98,19 @@ form.addEventListener("submit", async (e) => {
 });
 
 // ==============================================
-// PREGUNTAS FRECUENTES DINÁMICAS (Categorías + Base de Datos)
+// SUGERENCIAS (Tarjetas de la pantalla de bienvenida)
 // ==============================================
 
-function bindFaqEvents(container) {
-  const categories = container.querySelectorAll(".faq-category-card");
-  const drawer = container.querySelector("#faq-drawer");
-  const drawerTitle = container.querySelector("#faq-drawer-title");
-  const drawerContent = container.querySelector("#faq-drawer-content");
-  const closeBtn = container.querySelector("#close-faq-drawer");
-
-  if (closeBtn && drawer) {
-    closeBtn.addEventListener("click", () => {
-      drawer.classList.remove("active");
-      categories.forEach(c => c.classList.remove("active"));
-    });
-  }
-
-  categories.forEach((btn) => {
+function bindSuggestionCards(container) {
+  container.querySelectorAll(".suggestion-card").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      const category = btn.getAttribute("data-category");
-      if (!category) return;
-
-      // Si ya está activa, la cerramos
-      if (btn.classList.contains("active")) {
-        drawer.classList.remove("active");
-        btn.classList.remove("active");
-        return;
-      }
-
-      // Marcar activa la categoría seleccionada
-      categories.forEach(c => c.classList.remove("active"));
-      btn.classList.add("active");
-
-      // Configurar título del drawer
-      const categoryNames = {
-        faq_cuenta: "Cuenta",
-        faq_envios: "Envíos",
-        faq_pagos: "Pagos",
-        faq_productos: "Productos"
-      };
-      const catName = categoryNames[category] || "Preguntas frecuentes";
-      if (drawerTitle) drawerTitle.textContent = `Preguntas sobre ${catName}`;
-
-      // Mostrar el drawer agregando la clase active
-      if (drawer) drawer.classList.add("active");
-
-      // Cargar preguntas desde la base de datos
-      if (drawerContent) {
-        drawerContent.innerHTML = `
-          <div class="faq-loading">
-            <div class="typing-loader">
-              <span></span><span></span><span></span>
-            </div>
-            <p>Consultando base de datos...</p>
-          </div>
-        `;
-
-        try {
-          const response = await fetch(`/chat/faq/${category}`, {
-            method: "GET",
-            headers: {
-              "x-api-key": API_KEY,
-              "x-request-id": crypto.randomUUID(),
-              "x-correlation-id": crypto.randomUUID(),
-            }
-          });
-
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.message || `Error del servidor (${response.status})`);
-          }
-
-          const data = await response.json();
-          
-          if (!data.items || data.items.length === 0) {
-            drawerContent.innerHTML = `
-              <div class="faq-empty-state">
-                <span class="empty-icon">📂</span>
-                <p>No se encontraron preguntas registradas en la base de datos para la categoría <strong>${catName.toLowerCase()}</strong>.</p>
-              </div>
-            `;
-            return;
-          }
-
-          drawerContent.innerHTML = "";
-          data.items.forEach((item) => {
-            const faqBtn = document.createElement("button");
-            faqBtn.className = "faq-question-item animate-fade-in";
-            faqBtn.type = "button";
-            faqBtn.innerHTML = `
-              <span class="faq-question-text">${item.question}</span>
-              <svg class="faq-item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            `;
-            
-            // Al hacer clic, enviar la pregunta al chat
-            faqBtn.addEventListener("click", async () => {
-              if (drawer) drawer.classList.remove("active");
-              await sendMessage(item.question);
-            });
-            
-            drawerContent.appendChild(faqBtn);
-          });
-
-        } catch (err) {
-          console.error("Error fetching FAQs:", err);
-          drawerContent.innerHTML = `
-            <div class="faq-error-state">
-              <span class="error-icon">✕</span>
-              <p>Error de conexión</p>
-              <span class="error-detail">${err.message}</span>
-            </div>
-          `;
-        }
-      }
+      const text = btn.getAttribute("data-question");
+      if (text) await sendMessage(text);
     });
   });
 }
 
-bindFaqEvents(messagesWrap);
+bindSuggestionCards(messagesWrap);
 
 // ==============================================
 // BOTÓN NUEVO CHAT
@@ -232,7 +123,7 @@ clearBtn.addEventListener("click", () => {
     messageCount = 0;
     sessionId = crypto.randomUUID(); // Generar una nueva sesión de chat
     messagesWrap.innerHTML = buildWelcomeScreen();
-    bindFaqEvents(messagesWrap);
+    bindSuggestionCards(messagesWrap);
     messagesWrap.style.opacity = "1";
     input.focus();
     if (window.innerWidth <= 768) {
@@ -249,39 +140,24 @@ function buildWelcomeScreen() {
           <span class="gradient-text">Hola,</span><br>
           <span class="welcome-sub">¿en qué puedo ayudarte?</span>
         </h1>
-        <p class="welcome-desc">Soy un asistente comercial de ecosistema minimarket cloud, puedo ayudarte en el pedido, pago, stock, información de envíos.</p>
-
-        <div class="faq-section">
-          <h3 class="faq-section-title">Preguntas frecuentes por categoría</h3>
-          <div class="faq-categories-grid">
-            <button class="faq-category-card" data-category="faq_cuenta" type="button">
-              <span class="category-icon">👤</span>
-              <span class="category-name">Cuenta</span>
-            </button>
-            <button class="faq-category-card" data-category="faq_envios" type="button">
-              <span class="category-icon">🚚</span>
-              <span class="category-name">Envíos</span>
-            </button>
-            <button class="faq-category-card" data-category="faq_pagos" type="button">
-              <span class="category-icon">💳</span>
-              <span class="category-name">Pagos</span>
-            </button>
-            <button class="faq-category-card" data-category="faq_productos" type="button">
-              <span class="category-icon">📦</span>
-              <span class="category-name">Productos</span>
-            </button>
-          </div>
-
-          <!-- Drawer/Apartadito para mostrar preguntas frecuentes dinámicamente -->
-          <div class="faq-drawer-container" id="faq-drawer">
-            <div class="faq-drawer-header">
-              <h4 id="faq-drawer-title">Preguntas frecuentes</h4>
-              <button class="faq-drawer-close" id="close-faq-drawer" type="button" aria-label="Cerrar panel">✕</button>
-            </div>
-            <div class="faq-drawer-content" id="faq-drawer-content">
-              <p class="faq-placeholder">Selecciona una categoría de arriba para ver las preguntas frecuentes asociadas.</p>
-            </div>
-          </div>
+        <p class="welcome-desc">Soy el asistente conversacional del ecosistema Mini Marketplace Cloud. Puedo ayudarte con pedidos, pagos, stock e información de envíos.</p>
+        <div class="suggestions-grid">
+          <button class="suggestion-card" data-question="¿Dónde está mi pedido ORD-1001?" type="button">
+            <span class="card-icon">📦</span>
+            <div class="card-body"><strong>Estado de tu orden</strong><span>Pedidos</span></div>
+          </button>
+          <button class="suggestion-card" data-question="¿Se aprobó el pago de mi pedido ORD-1001?" type="button">
+            <span class="card-icon">💳</span>
+            <div class="card-body"><strong>Verificar pago</strong><span>Pagos</span></div>
+          </button>
+          <button class="suggestion-card" data-question="¿Hay stock del producto Pescas?" type="button">
+            <span class="card-icon">📋</span>
+            <div class="card-body"><strong>Disponibilidad de productos</strong><span>Productos</span></div>
+          </button>
+          <button class="suggestion-card" data-question="¿Cuánto demora el despacho a regiones?" type="button">
+            <span class="card-icon">🚚</span>
+            <div class="card-body"><strong>Tiempos de despacho</strong><span>Envíos</span></div>
+          </button>
         </div>
       </div>
     </div>
