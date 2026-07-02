@@ -74,6 +74,40 @@ export const mockData = {
   } as Record<string, any[]>,
 };
 
+// =====================================================================
+// FIX: evita URLs con doble barra "//" cuando la env var (ej.
+// ORDER_SERVICE_URL) viene con "/" al final, como
+// "https://pedidos-g5.onrender.com/". Sin esto, Express en el
+// servicio externo no matchea la ruta y responde 404, que el
+// código interpreta como "no encontrado" en vez de ver el bug real.
+// =====================================================================
+function joinUrl(base: string, path: string): string {
+  return `${base.replace(/\/+$/, "")}${path}`;
+}
+
+// G5 solo acepta buscar por su UUID interno en GET /orders/{id}.
+// Cuando el usuario escribe el "orderNumber" (ej: ORD-1782947531159),
+// hay que listar los pedidos del userId y buscar el que coincida.
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
+// Normaliza a camelCase, ya que GET /orders/{id} devuelve camelCase
+// pero GET /orders (listado) devuelve snake_case para los mismos campos.
+function normalizeOrder(order: any) {
+  return {
+    ...order,
+    id: order.id,
+    orderNumber: order.orderNumber ?? order.order_number,
+    userId: order.userId ?? order.user_id,
+    totalAmount: order.totalAmount ?? order.total_amount,
+    createdAt: order.createdAt ?? order.created_at,
+    updatedAt: order.updatedAt ?? order.updated_at,
+  };
+}
+
 export function getAdapters({
   headers,
   correlationId,
@@ -144,7 +178,7 @@ async function findProduct(query: string, headers: Record<string, string>) {
     const params = new URLSearchParams({ q: query });
     try {
       const products = await fetchJson(
-        `${config.services.catalog}/products?${params}`,
+        joinUrl(config.services.catalog, `/products?${params}`),
         headers
       );
       return Array.isArray(products) ? products[0] : products;
@@ -171,12 +205,37 @@ async function getOrder(
 ) {
   if (!config.mockMode && config.services.order) {
     try {
-      return await fetchJson(
-        `${config.services.order}/orders/${encodeURIComponent(orderId)}`,
+      // Caso 1: es un UUID -> consulta directa por ID real de G5
+      if (isUuid(orderId)) {
+        return await fetchJson(
+          joinUrl(config.services.order, `/orders/${encodeURIComponent(orderId)}`),
+          headers
+        );
+      }
+
+      // Caso 2: es un "orderNumber" tipo ORD-XXXX -> G5 no tiene endpoint
+      // directo para esto, así que listamos los pedidos del usuario y
+      // buscamos el que coincida por orderNumber.
+      if (!userId) {
+        return null;
+      }
+      const params = new URLSearchParams({ userId, size: "50" });
+      const listResult = await fetchJson(
+        joinUrl(config.services.order, `/orders?${params}`),
         headers
       );
+      const match = (listResult?.data ?? []).find(
+        (order: any) =>
+          order.order_number === orderId ||
+          order.orderNumber === orderId ||
+          order.id === orderId
+      );
+      // G5 devuelve snake_case en el listado (/orders) pero camelCase en
+      // la consulta directa (/orders/{id}). Normalizamos para que el
+      // resto del código no dependa de cuál endpoint respondió.
+      return match ? normalizeOrder(match) : null;
     } catch (err: any) {
-      if (err.message.includes("(404)")) {
+      if (err.message.includes("(404)") || err.message.includes("(400)")) {
         return null;
       }
       throw err;
@@ -202,7 +261,7 @@ async function getPaymentByOrderId(
     const params = new URLSearchParams({ orderId });
     try {
       return await fetchJson(
-        `${config.services.payment}/payments?${params}`,
+        joinUrl(config.services.payment, `/payments?${params}`),
         headers
       );
     } catch (err: any) {
@@ -227,7 +286,7 @@ async function getInventory(productId: string, headers: Record<string, string>) 
   if (!config.mockMode && config.services.inventory) {
     try {
       return await fetchJson(
-        `${config.services.inventory}/inventory/${encodeURIComponent(productId)}`,
+        joinUrl(config.services.inventory, `/inventory/${encodeURIComponent(productId)}`),
         headers
       );
     } catch (err: any) {
@@ -259,7 +318,7 @@ async function getShipmentByOrderId(
     const params = new URLSearchParams({ orderId });
     try {
       return await fetchJson(
-        `${config.services.shipping}/shipments?${params}`,
+        joinUrl(config.services.shipping, `/shipments?${params}`),
         headers
       );
     } catch (err: any) {
@@ -287,7 +346,7 @@ async function getNotifications(
   if (!config.mockMode && config.services.notification) {
     const params = new URLSearchParams({ userId });
     return fetchJson(
-      `${config.services.notification}/notifications?${params}`,
+      joinUrl(config.services.notification, `/notifications?${params}`),
       headers
     );
   }
@@ -302,7 +361,7 @@ async function getOrMock(
   fallback: any
 ) {
   if (!config.mockMode && baseUrl) {
-    return fetchJson(`${baseUrl}${path}`, headers);
+    return fetchJson(joinUrl(baseUrl, path), headers);
   }
 
   return fallback;
