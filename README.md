@@ -5,7 +5,7 @@ Este microservicio actúa como la capa de atención, orquestación e integració
 En esta fase actual, el proyecto implementa un Mock Funcional Inteligente alineado al contrato estricto para desbloquear las integraciones tempranas.
 
 ## Características (v1.1)
-- **Interfaz Visual**: Incluida para pruebas en `http://localhost:3000`.
+- **Interfaz Visual**: Incluida para pruebas en `http://localhost:3010`.
 - **Endpoints Oficiales:**
   - `POST /chat`: Procesamiento de mensajes de lenguaje natural.
   - `GET /chat/sessions/{sessionId}`: Recuperación de historial conversacional.
