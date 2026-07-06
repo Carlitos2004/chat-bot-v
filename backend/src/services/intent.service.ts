@@ -73,8 +73,8 @@ function extractOrderId(message: string): string {
   const ordMatch = message.match(/\bORD[-\s]?\d+\b/i);
   if (ordMatch) return ordMatch[0].toUpperCase().replace(/\s/, "-");
 
-  // 3. Fallback: orden de demostración por defecto
-  return "ORD-1001";
+  // 3. Fallback: vacío
+  return "";
 }
 
 // --- Funciones de utilidad originales (sin cambios) ---

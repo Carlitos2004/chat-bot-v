@@ -93,7 +93,11 @@ export async function getFaq({
       };
     }
 
-    console.log(`[FAQs] Datos cargados desde Supabase para la categoría: ${category} (Total: ${dbItems?.length ?? 0})`);
+    console.log(`\n┌── 🗄️ [CONSULTA SUPABASE - FAQs] ──────────────────────────────────┐`);
+    console.log(`│  Categoría: ${category}`);
+    console.log(`│  Registros Cargados: ${dbItems?.length ?? 0}`);
+    console.log(`│  Correlation ID: ${correlationId}`);
+    console.log(`└───────────────────────────────────────────────────────────────────┘`);
     return {
       category,
       items: dbItems || [],
