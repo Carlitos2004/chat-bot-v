@@ -3,76 +3,18 @@ import { config } from "../config/config.js";
 
 export const mockData = {
   auth: {
-    user_id: "USR-01",
+    user_id: "",
     role: "customer",
     status: "ACTIVE",
   },
-  products: [
-    {
-      id: "PROD-01",
-      name: "Pescas",
-      price: 15990,
-      description: "Producto destacado del marketplace para pruebas de catalogo.",
-    },
-    {
-      id: "PROD-02",
-      name: "Audifonos Bluetooth",
-      price: 24990,
-      description: "Audifonos inalambricos con estuche de carga.",
-    },
-  ],
-  inventory: {
-    "PROD-01": {
-      productId: "PROD-01",
-      quantity: 15,
-      available: true,
-    },
-    "PROD-02": {
-      productId: "PROD-02",
-      quantity: 4,
-      available: true,
-    },
-  } as Record<string, { productId: string; quantity: number; available: boolean }>,
-  orders: {
-    "ORD-1001": {
-      id: "ORD-1001",
-      userId: "USR-01",
-      status: "EN_TRANSITO",
-      items: [
-        {
-          productId: "PROD-01",
-          quantity: 1,
-        },
-      ],
-      totalAmount: 15990,
-    },
-  } as Record<string, any>,
-  paymentsByOrderId: {
-    "ORD-1001": {
-      id: "PAY-1001",
-      orderId: "ORD-1001",
-      status: "APPROVED",
-      amount: 15990,
-    },
-  } as Record<string, any>,
-  shipmentsByOrderId: {
-    "ORD-1001": {
-      orderId: "ORD-1001",
-      trackingNumber: "TRK-CL-1001",
-      status: "EN_TRANSITO",
-      eta: "2026-06-24",
-    },
-  } as Record<string, any>,
-  notificationsByUserId: {
-    "USR-01": [
-      {
-        id: "NOT-01",
-        title: "Tu pedido ORD-1001 esta en camino",
-        read: false,
-      },
-    ],
-  } as Record<string, any[]>,
+  products: [] as any[],
+  inventory: {} as Record<string, { productId: string; quantity: number; available: boolean }>,
+  orders: {} as Record<string, any>,
+  paymentsByOrderId: {} as Record<string, any>,
+  shipmentsByOrderId: {} as Record<string, any>,
+  notificationsByUserId: {} as Record<string, any[]>,
 };
+
 
 // =====================================================================
 // FIX: evita URLs con doble barra "//" cuando la env var (ej.
@@ -82,7 +24,26 @@ export const mockData = {
 // código interpreta como "no encontrado" en vez de ver el bug real.
 // =====================================================================
 function joinUrl(base: string, path: string): string {
-  return `${base.replace(/\/+$/, "")}${path}`;
+  let cleanBase = base.replace(/\/+$/, "");
+  
+  // Limpiar sufijo /health en la URL de despacho si está configurado erróneamente
+  if (cleanBase.endsWith("/health")) {
+    cleanBase = cleanBase.substring(0, cleanBase.length - 7);
+  }
+  
+  const pathClean = path.replace(/^\/+/, "");
+  const pathSegment = pathClean.split('?')[0]; 
+  
+  const baseParts = cleanBase.split('/');
+  const lastBaseSegment = baseParts[baseParts.length - 1]; 
+  
+  // Evitar duplicaciones de rutas (por ejemplo, /products/products o /payments/payments)
+  if (lastBaseSegment === pathSegment) {
+    const queryPart = path.includes('?') ? path.substring(path.indexOf('?')) : '';
+    return cleanBase + queryPart;
+  }
+  
+  return `${cleanBase}/${pathClean}`;
 }
 
 // G5 solo acepta buscar por su UUID interno en GET /orders/{id}.
@@ -105,6 +66,29 @@ function normalizeOrder(order: any) {
     totalAmount: order.totalAmount ?? order.total_amount,
     createdAt: order.createdAt ?? order.created_at,
     updatedAt: order.updatedAt ?? order.updated_at,
+  };
+}
+
+// Normalizar la respuesta de envíos del G8 para coincidir con la estructura interna esperada
+function normalizeShipment(shipment: any) {
+  if (!shipment) return null;
+  return {
+    ...shipment,
+    trackingNumber: shipment.shipmentId || shipment.trackingNumber || "SIN-TRACKING",
+    status: shipment.status || "PENDIENTE",
+    eta: shipment.deliveredAt ? `Entregado el ${shipment.deliveredAt}` : (shipment.updatedAt ? `Última actualización: ${shipment.updatedAt}` : "Sin ETA disponible")
+  };
+}
+
+// Normalizar la respuesta de inventario del G7 para coincidir con lo que espera el chatbot
+function normalizeInventory(inv: any) {
+  if (!inv) return { productId: "", quantity: 0, available: false };
+  const quantity = inv.availableStock ?? inv.quantity ?? 0;
+  const available = quantity > 0;
+  return {
+    productId: inv.productId || "",
+    quantity,
+    available
   };
 }
 
@@ -177,11 +161,15 @@ async function findProduct(query: string, headers: Record<string, string>) {
   if (!config.mockMode && config.services.catalog) {
     const params = new URLSearchParams({ q: query });
     try {
-      const products = await fetchJson(
+      const res = await fetchJson(
         joinUrl(config.services.catalog, `/products?${params}`),
-        headers
+        headers,
+        8000,
+        "Catálogo (G3)"
       );
-      return Array.isArray(products) ? products[0] : products;
+      // G3 entrega los productos en una propiedad "data"
+      const products = Array.isArray(res) ? res : res?.data ?? [];
+      return products[0] || null;
     } catch (err: any) {
       if (err.message.includes("(404)")) {
         return null;
@@ -209,7 +197,9 @@ async function getOrder(
       if (isUuid(orderId)) {
         return await fetchJson(
           joinUrl(config.services.order, `/orders/${encodeURIComponent(orderId)}`),
-          headers
+          headers,
+          8000,
+          "Pedidos (G5)"
         );
       }
 
@@ -222,7 +212,9 @@ async function getOrder(
       const params = new URLSearchParams({ userId, size: "50" });
       const listResult = await fetchJson(
         joinUrl(config.services.order, `/orders?${params}`),
-        headers
+        headers,
+        8000,
+        "Pedidos (G5)"
       );
       const match = (listResult?.data ?? []).find(
         (order: any) =>
@@ -230,9 +222,6 @@ async function getOrder(
           order.orderNumber === orderId ||
           order.id === orderId
       );
-      // G5 devuelve snake_case en el listado (/orders) pero camelCase en
-      // la consulta directa (/orders/{id}). Normalizamos para que el
-      // resto del código no dependa de cuál endpoint respondió.
       return match ? normalizeOrder(match) : null;
     } catch (err: any) {
       if (err.message.includes("(404)") || err.message.includes("(400)")) {
@@ -260,10 +249,14 @@ async function getPaymentByOrderId(
   if (!config.mockMode && config.services.payment) {
     const params = new URLSearchParams({ orderId });
     try {
-      return await fetchJson(
+      const res = await fetchJson(
         joinUrl(config.services.payment, `/payments?${params}`),
-        headers
+        headers,
+        8000,
+        "Pagos (G6)"
       );
+      const paymentList = Array.isArray(res) ? res : res?.data ?? (typeof res === 'object' && res ? [res] : []);
+      return paymentList[0] || null;
     } catch (err: any) {
       if (err.message.includes("(404)")) {
         return null;
@@ -285,10 +278,13 @@ async function getPaymentByOrderId(
 async function getInventory(productId: string, headers: Record<string, string>) {
   if (!config.mockMode && config.services.inventory) {
     try {
-      return await fetchJson(
+      const res = await fetchJson(
         joinUrl(config.services.inventory, `/inventory/${encodeURIComponent(productId)}`),
-        headers
+        headers,
+        8000,
+        "Inventario (G7)"
       );
+      return normalizeInventory(res);
     } catch (err: any) {
       if (err.message.includes("(404)")) {
         return {
@@ -317,10 +313,15 @@ async function getShipmentByOrderId(
   if (!config.mockMode && config.services.shipping) {
     const params = new URLSearchParams({ orderId });
     try {
-      return await fetchJson(
-        joinUrl(config.services.shipping, `/shipments?${params}`),
-        headers
+      const cleanUrl = config.services.shipping.replace(/\/health$/, "");
+      const res = await fetchJson(
+        joinUrl(cleanUrl, `/v1/shipments?${params}`),
+        headers,
+        8000,
+        "Envíos (G8)"
       );
+      const items = res?.items ?? [];
+      return items[0] ? normalizeShipment(items[0]) : null;
     } catch (err: any) {
       if (err.message.includes("(404)")) {
         return null;
@@ -345,10 +346,20 @@ async function getNotifications(
 ) {
   if (!config.mockMode && config.services.notification) {
     const params = new URLSearchParams({ userId });
-    return fetchJson(
-      joinUrl(config.services.notification, `/notifications?${params}`),
-      headers
-    );
+    try {
+      const res = await fetchJson(
+        joinUrl(config.services.notification, `/notifications?${params}`),
+        headers,
+        8000,
+        "Notificaciones (G9)"
+      );
+      return Array.isArray(res) ? res : res?.data ?? [];
+    } catch (err: any) {
+      if (err.message.includes("(404)")) {
+        return [];
+      }
+      throw err;
+    }
   }
 
   return mockData.notificationsByUserId[userId] ?? [];
@@ -361,18 +372,69 @@ async function getOrMock(
   fallback: any
 ) {
   if (!config.mockMode && baseUrl) {
-    return fetchJson(joinUrl(baseUrl, path), headers);
+    return fetchJson(joinUrl(baseUrl, path), headers, 8000, "Autenticación (G2)");
   }
 
   return fallback;
 }
 
-async function fetchJson(url: string, headers: Record<string, string>) {
-  const response = await fetch(url, { headers });
-
-  if (!response.ok) {
-    throw new Error(`Servicio externo no disponible (${response.status})`);
+async function fetchJson(url: string, headers: Record<string, string>, timeoutMs = 8000, groupLabel?: string) {
+  const correlationId = headers["x-correlation-id"] || "UNKNOWN";
+  const requestId = headers["x-request-id"] || "UNKNOWN";
+  
+  console.log(`\n┌── 🌐 [LLAMADA SALIENTE] ──────────────────────────────────────────┐`);
+  if (groupLabel) {
+    console.log(`│  Grupo Destino: ${groupLabel}`);
   }
+  console.log(`│  Ruta: GET ${url}`);
+  console.log(`│  Correlation ID: ${correlationId}`);
+  console.log(`│  Request ID: ${requestId}`);
+  console.log(`└───────────────────────────────────────────────────────────────────┘`);
 
-  return response.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { 
+      headers,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    console.log(`\n┌── ✅ [RESPUESTA RECIBIDA] ────────────────────────────────────────┐`);
+    if (groupLabel) {
+      console.log(`│  Grupo Origen: ${groupLabel}`);
+    }
+    console.log(`│  Ruta: GET ${url}`);
+    console.log(`│  Estado HTTP: ${response.status}`);
+    console.log(`│  Correlation ID: ${correlationId}`);
+    console.log(`└───────────────────────────────────────────────────────────────────┘`);
+
+    if (!response.ok) {
+      throw new Error(`Servicio externo no disponible (${response.status})`);
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === "AbortError") {
+      console.error(`\n┌── ⚠️ [ERROR DE TIEMPO DE ESPERA] ──────────────────────────────────┐`);
+      if (groupLabel) {
+        console.error(`│  Grupo: ${groupLabel}`);
+      }
+      console.error(`│  Falla: Timeout superado (${timeoutMs}ms) en GET ${url}`);
+      console.error(`│  Correlation ID: ${correlationId}`);
+      console.error(`└───────────────────────────────────────────────────────────────────┘`);
+      throw new Error(`Servicio externo no disponible (TIMEOUT)`);
+    }
+    console.error(`\n┌── ❌ [ERROR DE CONEXIÓN] ─────────────────────────────────────────┐`);
+    if (groupLabel) {
+      console.error(`│  Grupo: ${groupLabel}`);
+    }
+    console.error(`│  Falla: GET ${url}`);
+    console.error(`│  Detalle: ${error.message}`);
+    console.error(`│  Correlation ID: ${correlationId}`);
+    console.error(`└───────────────────────────────────────────────────────────────────┘`);
+    throw error;
+  }
 }

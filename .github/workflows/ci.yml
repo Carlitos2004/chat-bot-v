@@ -26,6 +26,11 @@ jobs:
         cd backend
         npm ci
 
+    - name: Run dependency security audit
+      run: |
+        cd backend
+        npm audit --audit-level=critical
+
     - name: Compile TypeScript
       run: |
         cd backend

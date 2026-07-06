@@ -318,6 +318,13 @@ export async function sendMessage(req: Request, res: Response) {
     (req.headers["x-request-id"] as string) ||
     randomUUID();
 
+  console.log(`\n======================= 📥 INICIO DE ACCIÓN / MENSAJE =======================`);
+
+  const sendResponse = (status: number, payload: any) => {
+    console.log(`\n======================= 📤 FIN DE ACCIÓN / MENSAJE (HTTP ${status}) =======================\n`);
+    return res.status(status).json(payload);
+  };
+
   const {
     session_id: sessionId,
     message,
@@ -326,7 +333,7 @@ export async function sendMessage(req: Request, res: Response) {
   const userId = requestContext?.user_id ?? null;
 
   if (!sessionId || typeof sessionId !== "string") {
-    return res.status(400).json({
+    return sendResponse(400, {
       timestamp: new Date().toISOString(),
       status: 400,
       code: "INVALID_REQUEST",
@@ -336,7 +343,7 @@ export async function sendMessage(req: Request, res: Response) {
   }
 
   if (!message || typeof message !== "string" || !message.trim()) {
-    return res.status(400).json({
+    return sendResponse(400, {
       timestamp: new Date().toISOString(),
       status: 400,
       code: "INVALID_REQUEST",
@@ -347,6 +354,13 @@ export async function sendMessage(req: Request, res: Response) {
 
   const intent = detectIntent(message);
   const entities = extractEntities(message);
+
+  console.log(`\n┌── 🤖 [CLASIFICACIÓN DE INTENTO - GEMINI] ─────────────────────────┐`);
+  console.log(`│  Mensaje: "${message}"`);
+  console.log(`│  Intento Detectado: ${intent}`);
+  console.log(`│  Entidades: ${JSON.stringify(entities)}`);
+  console.log(`│  Correlation ID: ${correlationId}`);
+  console.log(`└───────────────────────────────────────────────────────────────────┘`);
 
   await appendMessage(sessionId, {
     role: "user",
@@ -367,7 +381,7 @@ export async function sendMessage(req: Request, res: Response) {
       timestamp: new Date().toISOString(),
     });
 
-    return res.status(401).json({
+    return sendResponse(401, {
       timestamp: new Date().toISOString(),
       status: 401,
       code: "UNAUTHORIZED",
@@ -414,7 +428,7 @@ export async function sendMessage(req: Request, res: Response) {
       ...missing.map(s => `${serviceNamesMap[s] || s} (inactivo)`)
     ];
 
-    return res.status(200).json({
+    return sendResponse(200, {
       session_id: sessionId,
       response: responseText,
       intent_detected: intent,
@@ -439,7 +453,8 @@ export async function sendMessage(req: Request, res: Response) {
       intent,
       context,
       fallback,
-    });
+      // Pass correlationId as well if required
+    } as any);
     const response = geminiText || fallback;
     const timestamp = new Date().toISOString();
 
@@ -450,7 +465,7 @@ export async function sendMessage(req: Request, res: Response) {
       timestamp,
     });
 
-    return res.status(200).json({
+    return sendResponse(200, {
       session_id: sessionId,
       response,
       intent_detected: intent,
@@ -459,7 +474,7 @@ export async function sendMessage(req: Request, res: Response) {
       timestamp,
     });
   } catch (error: any) {
-    return res.status(503).json({
+    return sendResponse(503, {
       timestamp: new Date().toISOString(),
       status: 503,
       code: "UPSTREAM_SERVICE_UNAVAILABLE",
