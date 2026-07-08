@@ -28,12 +28,12 @@ export function detectIntent(message: string): string {
   }
 
   // 6. INVENTARIO Y CATALOGO
-  if (includesAny(text, ["stock", "disponible", "unidades", "inventario"])) return "stock_info";
+  if (includesAny(text, ["stock", "inventario", "disponible", "quedan", "cuantos", "cuanto", "hay", "tienen", "tiene", "queda", "unidades"])) return "stock_info";
   if (includesAny(text, ["producto", "precio", "catalogo"])) return "product_info";
   if (includesAny(text, ["notificacion", "mensaje", "alerta"])) return "notifications";
 
   // 7. FALLBACK: Si es una pregunta general pero no calza exacto
-  if (includesAny(text, ["cuanto", "como", "que", "cual", "donde", "tiene costo"]) && !hasOrderRef) {
+  if (includesAny(text, ["como", "que", "cual", "donde", "tiene costo"]) && !hasOrderRef) {
     return "faq_envios"; // Por defecto asumimos duda de envíos si pregunta "cuánto demora"
   }
 
@@ -44,13 +44,27 @@ export function extractEntities(message: string): {
   orderId: string;
   productQuery: string;
 } {
+  // Si el mensaje contiene un UUID en cualquier parte, úsalo directo como
+  // productQuery (bypass de la extracción de texto libre). Esto evita que
+  // palabras vecinas como "tienen", "hay", etc. queden pegadas al UUID y
+  // rompan la detección de isUuid() más adelante en upstreamMocks.service.ts.
+  const uuidInMessage = message.match(
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i
+  )?.[0];
+ 
+  // Antes exigía que "de/del/para" viniera INMEDIATAMENTE después de la
+  // palabra clave (producto|stock|...). Con frases como "stock tienen de X",
+  // la palabra "tienen" rompía esa cercanía y "tienen" quedaba pegado al
+  // inicio de productQuery, arruinando la búsqueda en el catálogo. Ahora
+  // busca la preposición en cualquier punto después de la palabra clave.
   const productMatch = message.match(
-    /(?:producto|stock|disponible|precio|catalogo)\s+(?:de\s+|del\s+|para\s+)?(.+)/i
+    /(?:producto|stock|disponible|precio|catalogo)\b(?:.*?\b(?:de|del|para)\b)?\s*(.+)/i
   );
-
+ 
   return {
     orderId: extractOrderId(message),
-    productQuery: cleanProductQuery(productMatch?.[1] ?? message),
+    productQuery:
+      uuidInMessage ?? cleanProductQuery(productMatch?.[1] ?? message),
   };
 }
 
@@ -93,8 +107,26 @@ function includesAny(value: string, candidates: string[]): boolean {
 function cleanProductQuery(value: string): string {
   return (
     value
-      .replace(/[?!.]+$/g, "")
-      .replace(/\b(hay|del|de|el|la|los|las|un|una)\b/gi, "")
+      // 1. EL MATAMOSCAS CORREGIDO: Ahora también elimina comillas dobles (") y simples (')
+      .replace(/[?!"',¿¡#@$%&^*+='~<>{}\[\]|\\\/]+/g, "")
+      
+      // 2. Quita el punto SOLO si está al final absoluto
+      .replace(/\.$/, "")
+      
+      // 3. Borra palabras de stock/unidades
+      .replace(/\b(cuantos|cuantas|cuántos|cuántas|cuanto|cuanta|cuánto|cuánta|unidades|unidad|stock|inventario|disponible|cantidad|quedan|queda)\b/gi, "")
+      
+      // 4. Quita palabras de cortesía y coloquiales
+      .replace(/\b(por favor|gracias|tienen|tiene|hay|esto|este|esta|quiero)\b/gi, "")
+      
+      // 5. Quita artículos y preposiciones
+      .replace(/\b(del|de|para|el|la|los|las|un|una)\b/gi, "")
+      
+      // 6. Elimina letras sueltas al final
+      .replace(/\b[a-z]\b$/gi, "")
+      
+      // 7. Limpia espacios dobles
+      .replace(/\s+/g, " ")
       .trim() || "producto"
   );
 }
