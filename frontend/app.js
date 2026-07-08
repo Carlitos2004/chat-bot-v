@@ -343,8 +343,9 @@ async function sendMessage(text) {
 // ==============================================
 
 function formatMarkdown(text) {
-  if (!text) return "";
-  let html = text
+  const raw = String(text ?? "");
+  if (!raw) return "";
+  let html = raw
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
