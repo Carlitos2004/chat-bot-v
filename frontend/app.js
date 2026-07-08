@@ -342,6 +342,31 @@ async function sendMessage(text) {
 // RENDERIZAR MENSAJES
 // ==============================================
 
+function formatMarkdown(text) {
+  const raw = String(text ?? "");
+  if (!raw) return "";
+  let html = raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  const lines = html.split("\n");
+  let inList = false;
+  const processed = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+      if (!inList) { inList = true; processed.push("<ul>"); }
+      processed.push(`<li>${trimmed.substring(2)}</li>`);
+    } else {
+      if (inList) { inList = false; processed.push("</ul>"); }
+      processed.push(line);
+    }
+  }
+  if (inList) processed.push("</ul>");
+  return processed.join("\n");
+}
+
 function appendMessage(role, text, meta = null, isLoading = false) {
   messageCount++;
 
@@ -377,7 +402,7 @@ function appendMessage(role, text, meta = null, isLoading = false) {
       </div>
     `;
   } else {
-    msgText.textContent = text;
+    msgText.innerHTML = formatMarkdown(text);
   }
 
   content.appendChild(msgText);

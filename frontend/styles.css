@@ -617,6 +617,21 @@ button, textarea, input {
   white-space: pre-wrap;
 }
 
+.msg-text ul {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding-left: 20px;
+  list-style-type: disc;
+}
+
+.msg-text li {
+  margin-bottom: 4px;
+}
+
+.msg-text li:last-child {
+  margin-bottom: 0;
+}
+
 /* Burbuja del usuario */
 .message-group.user .msg-text {
   background: var(--bg-bubble-user); /* Gris oscuro */
