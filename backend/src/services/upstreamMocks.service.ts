@@ -159,10 +159,24 @@ function buildOutgoingHeaders({
 
 async function findProduct(query: string, headers: Record<string, string>) {
   if (!config.mockMode && config.services.catalog) {
-    const params = new URLSearchParams({ q: query });
     try {
+      // Caso 1: el usuario escribió un UUID directamente -> consulta
+      // directa a GET /products/{id}, en vez de buscar por texto.
+      if (isUuid(query)) {
+        return await fetchJson(
+          joinUrl(config.services.catalog, `/products/${encodeURIComponent(query)}`),
+          headers,
+          8000,
+          "Catálogo (G3)"
+        );
+      }
+ 
+      // Caso 2: búsqueda por texto -> el endpoint correcto es
+      // /products/search (no /products, que es solo el listado paginado
+      // sin filtro por texto).
+      const params = new URLSearchParams({ q: query });
       const res = await fetchJson(
-        joinUrl(config.services.catalog, `/products?${params}`),
+        joinUrl(config.services.catalog, `/products/search?${params}`),
         headers,
         8000,
         "Catálogo (G3)"
@@ -177,7 +191,7 @@ async function findProduct(query: string, headers: Record<string, string>) {
       throw err;
     }
   }
-
+ 
   const normalized = query.toLowerCase();
   return (
     mockData.products.find((product) =>

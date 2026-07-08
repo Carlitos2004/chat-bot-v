@@ -149,31 +149,31 @@ async function collectContext({
 
   switch (intent) {
     case "order_status": {
+      // 1. Buscamos el pedido en G5
       const order = await adapters.orders.getOrder(
         entities.orderId,
         userId || ""
       );
+
+      // 2. ¡NUEVO! Si el pedido existe y tiene productos, buscamos sus nombres en el Catálogo
+      if (order && order.items && order.items.length > 0) {
+        for (let item of order.items) {
+          try {
+            // Usamos tu adaptador de catálogo para buscar por el ID del producto
+            const productInfo = await adapters.catalog.findProduct(item.product_id);
+            if (productInfo && (productInfo.name || productInfo.title)) {
+              // Le inyectamos una nueva variable al JSON para que Gemini la lea
+              item.product_name = productInfo.name || productInfo.title;
+            }
+          } catch (error) {
+            console.warn(`No se pudo obtener el nombre del producto ${item.product_id} del catálogo`);
+          }
+        }
+      }
+
       return {
         sources: [getSource("Pedidos", config.services.order)],
         order,
-      };
-    }
-
-    case "payment_status": {
-      const order = await adapters.orders.getOrder(
-        entities.orderId,
-        userId || ""
-      );
-      const payment = order
-        ? await adapters.payments.getPaymentByOrderId(order.orderId || order.id)
-        : null;
-      return {
-        sources: [
-          getSource("Pedidos", config.services.order),
-          getSource("Pagos", config.services.payment),
-        ],
-        order,
-        payment,
       };
     }
 

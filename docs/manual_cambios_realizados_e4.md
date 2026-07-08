@@ -79,3 +79,64 @@ A continuación se detalla cómo fue resuelto cada entregable y dónde encontrar
   * Secuencialmente, el bot llama a Catálogo (G3) para conseguir el UUID del producto, y luego a Inventario G7 para validar el stock real.
 * **Cómo corroborar que funciona:**
   La consola del servidor imprime la caja `🤖 [CLASIFICACIÓN DE INTENTO - GEMINI]` que muestra la entrada de texto limpio, el intento parseado y las entidades detectadas que gatillan la orquestación hacia las APIs.
+  
+ ### 6. Corrección de Bugs de Integración Real (Debugging E4)
+
+Tras el despliegue inicial y con MOCK_MODE=false, se detectaron y corrigieron varios problemas de integración que solo aparecen al conectar con las APIs reales de los demás grupos (no eran visibles en modo mock, ya que los datos simulados nunca tienen estas inconsistencias). A continuación el detalle de cada bug, su causa y la solución aplicada.
+
+6.1 Doble barra en URLs (joinUrl)
+
+
+Síntoma: MODULE_NOT_FOUND / 404 al llamar a servicios cuya variable de entorno (ej. ORDER_SERVICE_URL) venía con / al final (https://pedidos-g5.onrender.com/), generando rutas con // que Express no matcheaba.
+Solución: se agregó la función joinUrl(base, path) en upstreamMocks.service.ts, que limpia las barras finales de la base antes de concatenar el path. Se aplicó en todas las llamadas salientes del archivo.
+
+
+6.2 Pedidos: búsqueda por UUID vs. orderNumber
+
+
+Síntoma: G5 solo permite consultar por su UUID interno (GET /orders/{id}), pero el usuario suele escribir el número de pedido legible (ORD-XXXXXXXXXXXXX), que G5 no acepta directo y responde 400.
+Solución: se agregó isUuid() para detectar el formato. Si el texto es UUID, se llama directo a GET /orders/{id}; si es un orderNumber, se lista GET /orders?userId=...&limit=... y se busca la coincidencia dentro del listado.
+
+
+6.3 Inconsistencia de formato de campos entre endpoints de un mismo grupo
+
+
+Síntoma: varios grupos devuelven camelCase en un endpoint y snake_case en otro del mismo servicio (ej. G5: GET /orders/{id} responde orderNumber/totalAmount, pero GET /orders responde order_number/total_amount). Sin normalizar, el texto de respuesta del bot mostraba $undefined.
+Solución: se crearon funciones de normalización (normalizeOrder, normalizeInventory, normalizeShipment) que mapean ambos formatos a una única forma consistente antes de que el resto del código los use.
+
+
+6.4 Endpoint de búsqueda de Catálogo (G3) incorrecto
+
+
+Síntoma: el código llamaba a GET /products?q=..., pero ese endpoint es solo el listado paginado y no filtra por texto. El endpoint correcto según el contrato de G3 es GET /products/search?q=....
+Solución: se corrigió findProduct() para usar /products/search, y se agregó lectura correcta de la respuesta paginada ({ data: [...], meta: {...} }), que antes se trataba erróneamente como un array plano.
+
+
+6.5 Búsqueda de producto por UUID directo
+
+
+Síntoma: si el usuario escribía directamente el UUID de un producto, el código lo trataba como texto de búsqueda en vez de ir directo al recurso, y la búsqueda por texto no encontraba coincidencias.
+Solución: se agregó la misma lógica de detección de UUID (isUuid()) también en findProduct(), llamando directo a GET /products/{id} cuando corresponde.
+
+
+6.6 Extracción de entidades: palabras de relleno pegadas a la consulta
+
+
+Síntoma: frases naturales como "cuánto stock tienen de Señuelo Storm Gomoku" dejaban la palabra "tienen" pegada al inicio del productQuery ("tienen Señuelo Storm Gomoku"), porque la regex original exigía que la preposición (de/del/para) viniera inmediatamente después de la palabra clave (stock, producto, etc.). Esto rompía la búsqueda en el catálogo real.
+Solución: se ajustó la regex en extractEntities() (intent.service.ts) para buscar la preposición en cualquier punto después de la palabra clave, no solo justo a continuación, saltándose palabras de relleno intermedias.
+
+
+6.7 UUID mezclado con texto en el mensaje
+
+
+Síntoma: en mensajes como "cuánto stock tienen de 1398de9b-c483-4ad1-805a-619e78453963", el UUID quedaba con palabras pegadas ("tienen 1398de9b-..."), fallando la validación estricta de isUuid().
+Solución: se agregó una detección de UUID independiente, que busca el patrón UUID en cualquier parte del mensaje y lo usa directo como productQuery/orderId, sin pasar por la extracción de texto libre.
+
+
+6.8 Parámetro de paginación incorrecto al listar pedidos
+
+
+Síntoma: al buscar un pedido por orderNumber, el código pedía GET /orders?userId=...&size=50, pero la implementación real de G5 usa limit, no size. Al ignorar el parámetro desconocido, G5 devolvía solo los 10 pedidos más recientes por defecto, haciendo que pedidos más antiguos del mismo usuario no se encontraran.
+Solución: se corrigió el parámetro a limit en la llamada a GET /orders.
+Cómo corroborar que funciona:
+Con MOCK_MODE=false, consultar en el chat: "cuánto stock tienen de Señuelo Storm Gomoku" devuelve el stock real (40 unidades) cruzando Catálogo (G3) → Inventario (G7) en una sola conversación, incluyendo frases con palabras de relleno y UUIDs directos.
