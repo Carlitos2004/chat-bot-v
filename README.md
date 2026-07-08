@@ -3,7 +3,7 @@
 Este microservicio actúa como la capa de **atención, orquestación e
 integración conversacional** del ecosistema *Mini Marketplace Cloud*.
 
-Su responsabilidad principal es interactuar con los clientes utilizando
+Su responsabilidad principal es poder interactuar con los clientes utilizando
 lenguaje natural (IA) para resolver consultas sobre catálogo, stock,
 estados de órdenes, pagos, envíos y FAQs generales, conectando flujos
 complejos mediante llamadas backend-to-backend a los microservicios de
