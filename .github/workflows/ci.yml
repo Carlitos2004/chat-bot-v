@@ -1,4 +1,4 @@
-name: Chatbot Service CI
+name: Chatbot Service CI/CD
 
 on:
   push:
@@ -7,7 +7,10 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  # ----------------------------------------------------
+  # TRABAJO 1: INTEGRACIÓN CONTINUA (CI) - Validación estricta
+  # ----------------------------------------------------
+  ci-pipeline:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,17 +24,38 @@ jobs:
         cache: 'npm'
         cache-dependency-path: backend/package-lock.json
 
-    - name: Install dependencies
+    - name: Install dependencies (Strict)
       run: |
         cd backend
         npm ci
 
-    - name: Run dependency security audit
+    - name: Security Scan (NPM Audit)
       run: |
         cd backend
-        npm audit --audit-level=critical
+        # Revisa vulnerabilidades críticas o altas en las librerías instaladas
+        npm audit --audit-level=high
+
+    - name: Code Linting (Quality Check)
+      run: |
+        cd backend
+        # Valida que el código siga las reglas de estilo (se activa si tu package.json tiene el script lint)
+        npm run lint --if-present
 
     - name: Compile TypeScript
       run: |
         cd backend
         npm run build
+
+  # ----------------------------------------------------
+  # TRABAJO 2: DESPLIEGUE CONTINUO (CD) - Automatización a Producción
+  # ----------------------------------------------------
+  cd-pipeline:
+    runs-on: ubuntu-latest
+    needs: ci-pipeline # <-- ¡CLAVE! Solo corre si el trabajo de arriba (CI) terminó sin un solo error
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' # Solo despliega en Pushes directos a main
+
+    steps:
+    - name: Trigger Deploy on Render
+      # Usamos un Action oficial para disparar el Deploy Hook de Render de forma segura
+      run: |
+        curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
