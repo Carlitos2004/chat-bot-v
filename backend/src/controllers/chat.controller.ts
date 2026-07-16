@@ -140,7 +140,7 @@ async function collectContext({
   userId: string | null;
   headers: any;
   correlationId: string;
-}) {
+}): Promise<any> {
   const adapters = getAdapters({ headers, correlationId });
   const isMock = config.mockMode;
 
@@ -148,25 +148,39 @@ async function collectContext({
     (!isMock && url) ? serviceName : `${serviceName} (simulado)`;
 
   switch (intent) {
-    case "order_status": {
-      // 1. Buscamos el pedido en G5
+    case "order_status":
+    case "payment_status": {
+      // 1. Buscamos el pedido en el servicio de Pedidos de G5
       const order = await adapters.orders.getOrder(
         entities.orderId,
         userId || ""
       );
 
-      // 2. ¡NUEVO! Si el pedido existe y tiene productos, buscamos sus nombres en el Catálogo
+      // 2. Mapeamos el estado de pago basándonos en el flujo real de estados de G5
+      let payment = null;
+      if (order) {
+        // Si el estado es PAID, READY_TO_SHIP, SHIPPED o DELIVERED, significa que ya se pagó.
+        const isPaid = ["PAID", "READY_TO_SHIP", "SHIPPED", "DELIVERED"].includes(order.status);
+        
+        payment = {
+          status: isPaid ? "APROBADO" : order.status === "PAYMENT_PENDING" ? "PENDIENTE" : "RECHAZADO/PENDIENTE",
+          amount: order.totalAmount || order.total_amount || 0
+        };
+      }
+
+      // 3. Si el pedido existe y tiene productos, buscamos sus nombres en el Catálogo
       if (order && order.items && order.items.length > 0) {
         for (let item of order.items) {
           try {
-            // Usamos tu adaptador de catálogo para buscar por el ID del producto
-            const productInfo = await adapters.catalog.findProduct(item.product_id);
+            // Usamos el adaptador de catálogo para buscar por el ID del producto
+            const productId = item.product_id || item.productId;
+            const productInfo = await adapters.catalog.findProduct(productId);
             if (productInfo && (productInfo.name || productInfo.title)) {
               // Le inyectamos una nueva variable al JSON para que Gemini la lea
               item.product_name = productInfo.name || productInfo.title;
             }
           } catch (error) {
-            console.warn(`No se pudo obtener el nombre del producto ${item.product_id} del catálogo`);
+            console.warn(`No se pudo obtener el nombre del producto del catálogo`);
           }
         }
       }
@@ -174,6 +188,7 @@ async function collectContext({
       return {
         sources: [getSource("Pedidos", config.services.order)],
         order,
+        payment, // Ahora 'payment' viaja de forma segura hacia el fallback y Gemini
       };
     }
 
@@ -312,7 +327,8 @@ function isServiceConfigured(serviceName: string): boolean {
   }
 }
 
-export async function sendMessage(req: Request, res: Response) {
+// 1. Tipamos el req como 'any' o usando tu interfaz extendida para soportar req.user
+export async function sendMessage(req: any, res: Response) {
   const correlationId =
     (req.headers["x-correlation-id"] as string) ||
     (req.headers["x-request-id"] as string) ||
@@ -330,7 +346,13 @@ export async function sendMessage(req: Request, res: Response) {
     message,
     context: requestContext,
   } = req.body || {};
-  const userId = requestContext?.user_id ?? null;
+
+// req.user solo existe si el JWT fue validado por G2 (ver auth.middleware.ts).
+// El context.user_id del body NUNCA debe usarse para autorizar en producción —
+// solo se acepta como atajo de desarrollo cuando MOCK_MODE=true.
+const isRealAuth = !!req.user;
+const userId = req.user?.business_user_id
+  ?? (config.mockMode ? (requestContext?.user_id ?? null) : null);
 
   if (!sessionId || typeof sessionId !== "string") {
     return sendResponse(400, {
@@ -360,8 +382,10 @@ export async function sendMessage(req: Request, res: Response) {
   console.log(`│  Intento Detectado: ${intent}`);
   console.log(`│  Entidades: ${JSON.stringify(entities)}`);
   console.log(`│  Correlation ID: ${correlationId}`);
+  console.log(`│  Usuario Autenticado (G2): ${userId || "Anónimo"}`); // Log útil de auditoría
   console.log(`└───────────────────────────────────────────────────────────────────┘`);
 
+  // Guardamos el mensaje del usuario asociando el ID real obtenido
   await appendMessage(sessionId, {
     role: "user",
     content: message,
@@ -370,9 +394,9 @@ export async function sendMessage(req: Request, res: Response) {
     user_id: userId,
   });
 
-  if (PERSONAL_INTENTS.has(intent) && !userId) {
-    const errorResponseText =
-      "Para consultar informacion personal necesitas iniciar sesion.";
+  // 3. Validación de Intents Privados: Si requiere inicio de sesión y no hay un usuario verificado
+  if (PERSONAL_INTENTS.has(intent) && (!isRealAuth && !config.mockMode || !userId)) {
+    const errorResponseText = "Para consultar informacion personal necesitas iniciar sesión.";
 
     await appendMessage(sessionId, {
       role: "assistant",
@@ -389,6 +413,7 @@ export async function sendMessage(req: Request, res: Response) {
       correlationId,
     });
   }
+
 
   const required = getRequiredServices(intent);
   const missing = required.filter(s => !isServiceConfigured(s));
@@ -454,7 +479,7 @@ export async function sendMessage(req: Request, res: Response) {
       context,
       fallback,
       // Pass correlationId as well if required
-    } as any);
+    });
     const response = geminiText || fallback;
     const timestamp = new Date().toISOString();
 
