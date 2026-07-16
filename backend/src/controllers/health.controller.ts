@@ -42,6 +42,7 @@ export async function getHealth(req: Request, res: Response) {
       inventory_service: dependencyStatus(config.services.inventory),
       shipment_service: dependencyStatus(config.services.shipping),
       notification_service: dependencyStatus(config.services.notification),
+      reporting_service: dependencyStatus(config.services.reporting),
     },
     timestamp: new Date().toISOString(),
   });
