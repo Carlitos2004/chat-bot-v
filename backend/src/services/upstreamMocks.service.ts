@@ -223,7 +223,7 @@ async function getOrder(
       if (!userId) {
         return null;
       }
-      const params = new URLSearchParams({ userId, size: "50" });
+      const params = new URLSearchParams({ userId, limit: "50" });
       const listResult = await fetchJson(
         joinUrl(config.services.order, `/orders?${params}`),
         headers,
